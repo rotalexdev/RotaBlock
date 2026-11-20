@@ -1,0 +1,120 @@
+name: PR Policy
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [dev, master]
+
+permissions:
+  contents: read
+
+jobs:
+  branches:
+    name: branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce target and source branches
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          pattern='^(feat|fix|ci|docs|refactor|test|chore|perf|build|revert)/[a-z0-9._-]+$'
+          if [ "$BASE" = "master" ]; then
+            if [ "$HEAD" != "dev" ]; then
+              echo "::error::Only dev may target master."
+              exit 1
+            fi
+            echo "release pull request accepted"
+            exit 0
+          fi
+          if [ "$BASE" != "dev" ]; then
+            echo "::error::Pull requests must target dev or master, got '$BASE'."
+            exit 1
+          fi
+          if ! printf '%s' "$HEAD" | grep -Eq "$pattern"; then
+            echo "::error::Branch '$HEAD' must match $pattern."
+            exit 1
+          fi
+
+  pull-request-text:
+    name: pull-request-text
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce single-line title and empty body
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          pattern='^(feat|fix|ci|docs|refactor|test|chore|perf|build|revert)(\([a-z0-9._-]+\))?: [A-Za-z][^.]*[^.]$'
+          if ! printf '%s' "$TITLE" | grep -Eq "$pattern"; then
+            echo "::error::Title must be '<type>(<scope>): <subject>' in English."
+            exit 1
+          fi
+          if [ "${#TITLE}" -gt 72 ]; then
+            echo "::error::Title must be at most 72 characters."
+            exit 1
+          fi
+          if [ -n "$(printf '%s' "$BODY" | tr -d '[:space:]')" ]; then
+            echo "::error::Pull request body must be empty."
+            exit 1
+          fi
+
+  commits:
+    name: commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lint commit messages
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE" > /dev/null 2>&1
+          pattern='^(feat|fix|ci|docs|refactor|test|chore|perf|build|revert)(\([a-z0-9._-]+\))?: .+$'
+          fail=0
+          for sha in $(git rev-list --no-merges "origin/$BASE..HEAD"); do
+            subject=$(git log -1 --format=%s "$sha")
+            body=$(git log -1 --format=%b "$sha" | tr -d '[:space:]')
+            if ! printf '%s' "$subject" | grep -Eq "$pattern"; then
+              echo "::error::$sha subject is not '<type>(<scope>): <subject>': $subject"
+              fail=1
+            fi
+            if [ "${#subject}" -gt 72 ]; then
+              echo "::error::$sha subject exceeds 72 characters."
+              fail=1
+            fi
+            if [ -n "$body" ]; then
+              echo "::error::$sha has a message body; commits carry a single line."
+              fail=1
+            fi
+            if printf '%s' "$subject" | grep -Eiq '\bplan\b|phase [0-9]|milestone'; then
+              echo "::error::$sha references planning vocabulary: $subject"
+              fail=1
+            fi
+          done
+          exit "$fail"
+
+  comments:
+    name: comments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan sources for forbidden comments
+        run: |
+          set -euo pipefail
+          line_comments=$(grep -rnE '(^|[^:])//' --include='*.kt' --include='*.kts' --exclude-dir=build . || true)
+          block_comments=$(grep -rnE '(^|[^*])/\*([^*]|$)' --include='*.kt' --include='*.kts' --exclude-dir=build . || true)
+          if [ -n "$line_comments" ]; then
+            echo "::error::Line comments are forbidden."
+            echo "$line_comments"
+            exit 1
+          fi
+          if [ -n "$block_comments" ]; then
+            echo "::error::Only public API KDoc is allowed."
+            echo "$block_comments"
+            exit 1
+          fi
