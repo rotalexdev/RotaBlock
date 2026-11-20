@@ -82,19 +82,18 @@ never knows that blocks exist.
 :androidApp ─┐
              ├─► :shared ─► :block-ui ─► :block-api ─► :language-api
 :desktopApp ─┘         └──► :block-impl ─► :block-api
-                       └──► :lang-jdt ──► :block-api
 ```
 
 Dependency rules, enforced by review and by build configuration:
 
 | Rule | Statement |
 | --- | --- |
-| D-1 | `*-api` modules may depend only on other `*-api` modules. |
-| D-2 | `*-impl` modules depend on their `api` module and never on a UI module. |
-| D-3 | Language adapters depend on `:block-api` and on their parser only. |
-| D-4 | Application modules depend only on `:shared` and contain no product logic. |
-| D-5 | No module depends on an application module; no cycles between modules. |
-| D-6 | `commonMain` of every multiplatform module stays free of JVM-only types and dependencies. |
+| DEP-1 | `*-api` modules may depend only on other `*-api` modules. |
+| DEP-2 | `*-impl` modules depend on their `api` module and never on a UI module. |
+| DEP-3 | Language adapters depend on `:block-api` and on their parser only. |
+| DEP-4 | Application modules depend only on `:shared` and contain no product logic. |
+| DEP-5 | No module depends on an application module; no cycles between modules. |
+| DEP-6 | `commonMain` of every multiplatform module stays free of JVM-only types and dependencies. |
 
 ### 2.3 Package and namespace convention
 
@@ -120,7 +119,8 @@ Every framework module is Kotlin Multiplatform with exactly two targets:
 Both targets are JVM-backed, which is why a JVM-only dependency is legal in a *platform* source set
 but never in `commonMain`. When a module needs JVM-only code on both targets it introduces an
 intermediate source set (`jvmSharedMain`) that `androidMain` and `desktopMain` depend on, and declares
-the JVM-only dependency there once. `:lang-jdt` is the only module expected to need this.
+the JVM-only dependency there once. No framework module currently needs this; a consumer-supplied
+language adapter is the only expected case.
 
 ### 2.5 Contracts per module
 
@@ -204,6 +204,10 @@ declare platform-specific configuration. No domain logic, no parsing, no state m
 
 Parser wrappers are rebuilt on every access in several real parsers, so identity is never used to
 match nodes: the engine matches by `TextRange`, never by object identity.
+
+No parser ships in the framework. `:language-api` defines the adapter contract and the neutral DOM; a
+host supplies the adapters for the languages it supports. The core therefore carries no parser
+dependency, no JVM-only parser library and no language-specific node model.
 
 ### 3.2 Block model
 
@@ -460,22 +464,20 @@ merged pull requests.
 | M1 | Language contracts | `:language-api` public surface with KDoc and contract tests for every invariant |
 | M2 | Block contracts | `:block-api` public surface with KDoc and contract tests for every invariant |
 | M3 | Engine | Projection and edit compilation with golden tests for every rule in section 4 |
-| M4 | Java adapter | `:lang-jdt` parsing real Java with tolerant recovery, validated on desktop and on Android |
-| M5 | Block UI | Compose renderer and gestures emitting `BlockEdit`s, verified through previews |
-| M6 | Host | `:shared` document store, reparse loop, adapter registry and embeddable app surface |
-| M7 | Entrypoints | Both applications open a sample document and edit it end to end |
+| M4 | Block UI | Compose renderer and gestures emitting `BlockEdit`s, verified through previews |
+| M5 | Host | `:shared` document store, reparse loop, adapter registry and embeddable app surface |
+| M6 | Entrypoints | Both applications open a sample document and edit it end to end |
 
 ## 9. Risks
 
 | Id | Risk | Mitigation |
 | --- | --- | --- |
-| R-1 | Eclipse JDT may not run on Android (JVM 17 bytecode, runtime APIs) | Validate with a spike before committing to the adapter; fallback is a pure-JVM parser shared through `jvmSharedMain`, or an opaque-only adapter on Android |
-| R-2 | Projection correctness on malformed input | Tolerant parse contract, golden tests over incomplete fragments, no throwing paths in projection |
-| R-3 | AGP 9 KMP Android library plugin maturity | Versions pinned through the catalog; single module shape reused everywhere; upgrades are their own pull request |
-| R-4 | Compose Multiplatform and Kotlin version compatibility | Both pinned by the published catalog; upgrades gated by a green build on both targets |
-| R-5 | Review workload | Work units of roughly 400 authored lines, one behavior per pull request |
-| R-6 | Silent regressions in shared edit helpers | Differential checks against the previous implementation when shared code changes |
-| R-7 | Full-pass projection cost on large files | Measured budget per file size; incremental projection only with a passing budget |
+| R-1 | Projection correctness on malformed input | Tolerant parse contract, golden tests over incomplete fragments, no throwing paths in projection |
+| R-2 | AGP 9 KMP Android library plugin maturity | Versions pinned through the catalog; single module shape reused everywhere; upgrades are their own pull request |
+| R-3 | Compose Multiplatform and Kotlin version compatibility | Both pinned by the published catalog; upgrades gated by a green build on both targets |
+| R-4 | Review workload | Work units of roughly 400 authored lines, one behavior per pull request |
+| R-5 | Silent regressions in shared edit helpers | Differential checks against the previous implementation when shared code changes |
+| R-6 | Full-pass projection cost on large files | Measured budget per file size; incremental projection only with a passing budget |
 
 ## 10. Decision records
 
@@ -485,7 +487,7 @@ merged pull requests.
 | D-2 | Kotlin Multiplatform with exactly `android` and `desktop` targets | Both are JVM-backed; one shared core serves both products without a third toolchain |
 | D-3 | Applications are entrypoints only; product code lives in `:shared` and below | Keeps product logic testable in common code and prevents platform forks |
 | D-4 | Published catalog first, local catalog only as a documented fallback | One version authority for the whole Rotalex ecosystem |
-| D-5 | Eclipse JDT as the reference language adapter | A real parser with error recovery beats a hand-written approximation, and Java is the reference language |
+| D-5 | No parser adapter ships in the framework core | Language support is a consumer concern: `:language-api` defines the adapter contract, the core carries no parser dependency, and the neutral DOM stays the only structural model |
 | D-6 | Contracts split into `api` and `impl` modules per concern | Consumers depend on stable contracts; implementation can evolve without breaking them |
 | D-7 | KDoc on public API only, no other comments | Names, types and tests carry intent; comments rot and duplicate |
 | D-8 | One bootstrap commit on `master`, then release-only | Governance needs a first commit; every later change is reviewable |
