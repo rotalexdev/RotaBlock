@@ -11,6 +11,8 @@ Text is the only stored representation; blocks are a live projection of the pars
 edit compiles back into a minimal text edit.
 
 Modules: `:language-api`, `:block-api`, `:block-impl`, `:shared`, `:androidApp`, `:desktopApp`.
+`PLAN.md` section 5 defines the target module graph (`:core`, `:parser`, `:lang`, `:ui`) and section 20
+defines the ordered migration to it; until that migration lands, the names above are the current ones.
 Applications are entrypoints only. All product code lives in `:shared` and below.
 
 ## 2. Build environment
