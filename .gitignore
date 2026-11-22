@@ -24,5 +24,7 @@ odd/
 .pi-sessions/
 *pi-session*
 .pi-*
+.codegraph/
+.codegraph-wsl/
 CLAUDE.md
 AGENTS.local.md
