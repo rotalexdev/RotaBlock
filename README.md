@@ -12,9 +12,10 @@ working contract.
 
 | Module | Role |
 | --- | --- |
-| `:language-api` | Language-neutral DOM, ranges, document edits, extension points |
-| `:block-api` | Block model, block edits, mapping SPI, templates |
-| `:block-impl` | Projection engine and edit compiler |
+| `:core:language` | Language-neutral DOM, ranges, document edits, extension points |
+| `:core:block` | Block model, block edits, mapping SPI, templates |
+| `:core:engine` | Projection engine and edit compiler |
+| `:ui:block` | Compose block surface |
 | `:shared` | Composition root and embeddable app surface |
 | `:androidApp` | Android entrypoint |
 | `:desktopApp` | Desktop entrypoint |

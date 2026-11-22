@@ -9,10 +9,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(project(":language-api"))
-            api(project(":block-api"))
-            implementation(project(":block-impl"))
-            implementation(project(":block-ui"))
+            api(project(":core:language"))
+            api(project(":core:block"))
+            implementation(project(":core:engine"))
+            implementation(project(":ui:block"))
         }
     }
 }
