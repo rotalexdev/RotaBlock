@@ -11,5 +11,8 @@ kotlin {
         commonMain.dependencies {
             api(project(":language-api"))
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
