@@ -24,6 +24,7 @@ rootProject.name = "rotablock"
 include(":language-api")
 include(":block-api")
 include(":block-impl")
+include(":block-ui")
 include(":shared")
 include(":androidApp")
 include(":desktopApp")

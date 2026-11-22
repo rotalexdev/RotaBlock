@@ -12,6 +12,7 @@ kotlin {
             api(project(":language-api"))
             api(project(":block-api"))
             implementation(project(":block-impl"))
+            implementation(project(":block-ui"))
         }
     }
 }
