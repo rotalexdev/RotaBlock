@@ -1,6 +1,7 @@
 package dev.rotalex.rotablock.core.engine
 
 import dev.rotalex.rotablock.core.block.BlockMapping
+import dev.rotalex.rotablock.core.block.LayoutPolicy
 import dev.rotalex.rotablock.core.block.BlockNode
 import dev.rotalex.rotablock.core.block.BlockPart
 import dev.rotalex.rotablock.core.block.BlockRef
@@ -30,6 +31,7 @@ class BlockProjectorTest {
         override val handles: Set<NodeKind> = setOf(NodeKind("Call")),
     ) : BlockMapping {
         override val categories: Map<NodeKind, SlotCategory> = handles.associateWith { SlotCategory.EXPRESSION }
+        override val layout: LayoutPolicy = LayoutPolicy.NONE
     }
 
     private fun registrations(vararg mappings: BlockMapping): ExtensionPoint<BlockMapping> {
@@ -156,6 +158,7 @@ class BlockProjectorTest {
             override val languages: Set<LanguageId> = setOf(kotlin)
             override val handles: Set<NodeKind> = setOf(call)
             override val categories: Map<NodeKind, SlotCategory> = mapOf(call to SlotCategory.DECLARATION)
+            override val layout: LayoutPolicy = LayoutPolicy.NONE
         }
         assertEquals(SlotCategory.DECLARATION, project(mapper = mapper).category)
     }
@@ -172,6 +175,7 @@ class BlockProjectorTest {
             override val languages: Set<LanguageId> = setOf(kotlin)
             override val handles: Set<NodeKind> = setOf(call)
             override val categories: Map<NodeKind, SlotCategory> = emptyMap()
+            override val layout: LayoutPolicy = LayoutPolicy.NONE
         }
         assertFailsWith<IllegalStateException> { project(mapper = mapper) }
     }

@@ -18,7 +18,7 @@ class BlockProjectionServiceTest {
 
     private inner class FakeService : BlockProjectionService {
         var seenEdit: BlockEdit? = null
-        override fun project(parsed: ParsedFile, language: LanguageId): BlockTree = BlockTree(root, parsed.documentVersion)
+        override fun project(parsed: ParsedFile, language: LanguageId): BlockTree = BlockTree(root, parsed.documentVersion, language)
         override fun compile(edit: BlockEdit, tree: BlockTree): List<DocumentEdit> {
             seenEdit = edit
             return if (tree.block((edit as? BlockEdit.Delete)?.block?.id ?: BlockId("absent")) == null) {
@@ -42,13 +42,13 @@ class BlockProjectionServiceTest {
     fun compilesAnEditAgainstTheTreeItWasDerivedFrom() {
         val service = FakeService()
         val edit = BlockEdit.Delete(BlockRef(BlockId("root")))
-        assertEquals(listOf(DocumentEdit(0, 5, "")), service.compile(edit, BlockTree(root, 7L)))
+        assertEquals(listOf(DocumentEdit(0, 5, "")), service.compile(edit, BlockTree(root, 7L, LanguageId("test"))))
         assertSame(edit, service.seenEdit)
     }
 
     @Test
     fun aStaleReferenceCompilesToNoEdits() {
         val service = FakeService()
-        assertTrue(service.compile(BlockEdit.Delete(BlockRef(BlockId("gone"))), BlockTree(root, 7L)).isEmpty())
+        assertTrue(service.compile(BlockEdit.Delete(BlockRef(BlockId("gone"))), BlockTree(root, 7L, LanguageId("test"))).isEmpty())
     }
 }

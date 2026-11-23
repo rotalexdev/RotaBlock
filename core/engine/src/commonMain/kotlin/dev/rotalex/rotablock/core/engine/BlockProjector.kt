@@ -23,6 +23,6 @@ class BlockProjector(
     fun project(parsed: ParsedFile, language: LanguageId): BlockTree {
         val mapping = mappings.extensions().firstOrNull { language in it.languages }
         val context = EngineProjectionContext(parsed.text(), mapping, oracle)
-        return BlockTree(context.projectNode(parsed.root), parsed.documentVersion)
+        return BlockTree(context.projectNode(parsed.root), parsed.documentVersion, language)
     }
 }

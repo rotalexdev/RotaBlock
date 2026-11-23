@@ -11,6 +11,7 @@ class BlockMappingExtensionPointTest {
         override val languages: Set<LanguageId> = setOf(LanguageId(language))
         override val handles: Set<NodeKind> = emptySet()
         override val categories: Map<NodeKind, SlotCategory> = emptyMap()
+        override val layout: LayoutPolicy = LayoutPolicy.NONE
     }
 
     @Test

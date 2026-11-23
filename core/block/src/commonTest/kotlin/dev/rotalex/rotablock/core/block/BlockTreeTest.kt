@@ -1,6 +1,7 @@
 package dev.rotalex.rotablock.core.block
 
 import dev.rotalex.rotablock.core.language.DomNode
+import dev.rotalex.rotablock.core.language.LanguageId
 import dev.rotalex.rotablock.core.language.NodeKind
 import dev.rotalex.rotablock.core.language.TextRange
 
@@ -11,6 +12,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 
 class BlockTreeTest {
+    private val language = LanguageId("test")
+
     private val source = "a(b)c"
 
     private fun leaf(id: String, start: Int, end: Int) = BlockNode(
@@ -34,7 +37,7 @@ class BlockTreeTest {
     @Test
     fun exposesItsRootAndVersion() {
         val root = leaf("root", 0, 5)
-        val tree = BlockTree(root, 9L)
+        val tree = BlockTree(root, 9L, language)
         assertSame(root, tree.root)
         assertEquals(9L, tree.version)
     }
@@ -42,7 +45,7 @@ class BlockTreeTest {
     @Test
     fun findsABlockById() {
         val child = leaf("inner", 1, 4)
-        val tree = BlockTree(wrapping(TextRange(0, 5), child), 1L)
+        val tree = BlockTree(wrapping(TextRange(0, 5), child), 1L, language)
         assertSame(child, tree.block(BlockId("inner")))
     }
 
@@ -57,27 +60,27 @@ class BlockTreeTest {
             range = TextRange(1, 4),
             parts = listOf(BlockPart.Slot(BlockSlot(SlotCategory.OPAQUE, listOf(deepest), false, null, ValueKind.UNKNOWN))),
         )
-        val tree = BlockTree(wrapping(TextRange(0, 5), middle), 1L)
+        val tree = BlockTree(wrapping(TextRange(0, 5), middle), 1L, language)
         assertSame(middle, tree.block(BlockId("middle")))
         assertSame(deepest, tree.block(BlockId("deep")))
     }
 
     @Test
     fun anUnknownIdResolvesToNothing() {
-        assertNull(BlockTree(leaf("root", 0, 5), 1L).block(BlockId("absent")))
+        assertNull(BlockTree(leaf("root", 0, 5), 1L, language).block(BlockId("absent")))
     }
 
     @Test
     fun blockAtReturnsTheDeepestContainingBlock() {
         val child = leaf("inner", 1, 4)
-        val tree = BlockTree(wrapping(TextRange(0, 5), child), 1L)
+        val tree = BlockTree(wrapping(TextRange(0, 5), child), 1L, language)
         assertSame(child, tree.blockAt(2))
         assertSame(tree.root, tree.blockAt(0))
     }
 
     @Test
     fun blockAtReturnsNothingOutsideTheRoot() {
-        assertNull(BlockTree(leaf("root", 0, 3), 1L).blockAt(3))
+        assertNull(BlockTree(leaf("root", 0, 3), 1L, language).blockAt(3))
     }
 
     @Test
@@ -95,6 +98,6 @@ class BlockTreeTest {
                 BlockPart.Slot(BlockSlot(SlotCategory.STATEMENT, listOf(second), true, null, ValueKind.UNKNOWN)),
             ),
         )
-        assertFailsWith<IllegalArgumentException> { BlockTree(root, 1L) }
+        assertFailsWith<IllegalArgumentException> { BlockTree(root, 1L, language) }
     }
 }

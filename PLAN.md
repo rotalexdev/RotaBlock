@@ -443,7 +443,7 @@ Constraints that the DOM must keep, because §7 depends on them:
 | `BlockSlot` | `category`, `children`, `multiple`, `range`, `valueKind`. |
 | `SlotCategory` | Closed set: `STATEMENT`, `EXPRESSION`, `TYPE`, `DECLARATION`, `NAME`, `MODIFIER`, `PARAMETER`, `ARGUMENT`, `OPAQUE`. `OPAQUE` accepts anything. |
 | `ValueKind` | Closed set: `BOOLEAN`, `NUMBER`, `STRING`, `OBJECT`, `ARRAY`, `TYPE`, `NULL`, `UNKNOWN`. |
-| `BlockTree` | `root`, `version`, `block(id)`, `blockAt(offset)`, `enclosing(range)`. |
+| `BlockTree` | `root`, `version`, `language`, `block(id)`, `blockAt(offset)`, `enclosing(range)`. The language travels with the tree because compilation asks that language's layout rules, and a tree is what an intent is compiled against. |
 
 Two corrections to the first version of this plan, both forced by making `I-9` enforceable:
 
