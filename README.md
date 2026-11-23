@@ -15,6 +15,8 @@ working contract.
 | `:core:language` | Language-neutral DOM, ranges, document edits, extension points |
 | `:core:block` | Block model, block edits, mapping SPI, templates |
 | `:core:engine` | Projection engine and edit compiler |
+| `:core:testkit` | Conformance suites that keep the contracts testable |
+| `:parser:tree-sitter` | Tree-sitter adapter producing the neutral tree |
 | `:ui:block` | Compose block surface |
 | `:shared` | Composition root and embeddable app surface |
 | `:androidApp` | Android entrypoint |
