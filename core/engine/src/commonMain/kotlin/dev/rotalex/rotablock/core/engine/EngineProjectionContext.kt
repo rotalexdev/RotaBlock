@@ -15,22 +15,22 @@ import dev.rotalex.rotablock.core.language.NodeKind
 import dev.rotalex.rotablock.core.language.TextRange
 
 /**
- * The engine side of the projection seam: it reads the source, interleaves chrome, projects children and
- * assigns block ids, so a mapping only has to say what a node decomposes into.
+ * The engine side of the projection seam: it reads the source, interleaves chrome, projects children,
+ * resolves categories and assigns block ids, so a mapping only has to say what a node decomposes into.
  *
- * One instance serves exactly one projection, which is what makes the id counter deterministic.
+ * Ids come from the parse position of each node, never from a traversal counter, so an edit that leaves the
+ * structure of a subtree untouched leaves its ids untouched too.
  */
 class EngineProjectionContext(
     override val source: CharSequence,
     private val mapping: BlockMapping?,
     private val oracle: ValueKindOracle?,
 ) : ProjectionContext {
-    private var counter = 0
-    private val reserved: MutableList<BlockId> = mutableListOf()
+    private var synthetic = 0
 
     /** Projects [node]: through its mapping when the mapping handles its kind, as one opaque block otherwise. */
     fun projectNode(node: DomNode): BlockNode =
-        buildNode { if (mapping != null && node.kind in mapping.handles) mapping.project(node, this) else opaque(node) }
+        if (mapping != null && node.kind in mapping.handles) mapping.project(node, this) else opaque(node)
 
     override fun textOf(node: DomNode): String = node.text()
 
@@ -64,6 +64,16 @@ class EngineProjectionContext(
 
     override fun child(node: DomNode): BlockNode = projectNode(node)
 
+    override fun category(kind: NodeKind): SlotCategory {
+        val declared = mapping?.categories?.get(kind)
+        if (declared != null) return declared
+        return if (mapping != null && kind in mapping.handles) {
+            throw IllegalStateException("The mapping handles ${kind.id} without declaring its category.")
+        } else {
+            SlotCategory.OPAQUE
+        }
+    }
+
     override fun block(
         kind: NodeKind,
         range: TextRange,
@@ -72,10 +82,11 @@ class EngineProjectionContext(
         label: String?,
         valueKind: ValueKind,
     ): BlockNode {
-        val id = takeId()
-        val produced = BlockNode(id, kind, anchor, range, parts, label, valueKind)
+        val id = idOf(anchor)
+        val declared = category(kind)
+        val produced = BlockNode(id, kind, declared, anchor, range, parts, label, valueKind)
         val refined = oracle?.valueKindOf(produced) ?: return produced
-        return if (refined == valueKind) produced else BlockNode(id, kind, anchor, range, parts, label, refined)
+        return if (refined == valueKind) produced else BlockNode(id, kind, declared, anchor, range, parts, label, refined)
     }
 
     override fun slot(
@@ -99,21 +110,19 @@ class EngineProjectionContext(
     private fun chrome(start: Int, end: Int): BlockField =
         BlockField.chrome("syntax", source.subSequence(start, end).toString(), TextRange(start, end))
 
-    private inline fun buildNode(produce: () -> BlockNode): BlockNode {
-        val id = BlockId("b" + counter)
-        counter += 1
-        reserved.add(id)
-        val produced = produce()
-        if (reserved.isNotEmpty() && reserved.last() == id) reserved.removeAt(reserved.lastIndex)
-        return produced
-    }
-
-    private fun takeId(): BlockId =
-        if (reserved.isEmpty()) {
-            val id = BlockId("b" + counter)
-            counter += 1
-            id
-        } else {
-            reserved.removeAt(reserved.lastIndex)
+    private fun idOf(anchor: DomNode?): BlockId {
+        if (anchor == null) {
+            val id = BlockId("synthetic#" + synthetic)
+            synthetic += 1
+            return id
         }
+        val segments = mutableListOf<String>()
+        var current: DomNode? = anchor
+        while (current != null) {
+            val parent = current.parent
+            segments += if (parent == null) current.kind.id else "${current.kind.id}#${parent.children.indexOf(current)}"
+            current = parent
+        }
+        return BlockId(segments.asReversed().joinToString("/"))
+    }
 }

@@ -24,6 +24,8 @@ class FakeProjectionContext(override val source: CharSequence) : ProjectionConte
         return block(node.kind, node.range, emptyList(), node)
     }
 
+    override fun category(kind: NodeKind): SlotCategory = SlotCategory.OPAQUE
+
     override fun block(
         kind: NodeKind,
         range: TextRange,
@@ -33,7 +35,7 @@ class FakeProjectionContext(override val source: CharSequence) : ProjectionConte
         valueKind: ValueKind,
     ): BlockNode {
         counter += 1
-        return BlockNode(BlockId("b" + counter), kind, anchor, range, parts, label, valueKind)
+        return BlockNode(BlockId("b" + counter), kind, category(kind), anchor, range, parts, label, valueKind)
     }
 
     override fun slot(

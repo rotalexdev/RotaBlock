@@ -7,12 +7,14 @@ import dev.rotalex.rotablock.core.language.TextRange
 /**
  * One block of the projection: its identity, the DOM node it projects, and its ordered content.
  *
- * [anchor] is the node this block was projected from and is `null` only for synthetic chrome blocks.
+ * [category] is the structural grammar of the block, which is what lets a slot answer whether it may hold
+ * it. [anchor] is the node this block was projected from and is `null` only for synthetic chrome blocks.
  * [fields] and [slots] are views over [parts] and never a second source of truth.
  */
 class BlockNode(
     val id: BlockId,
     val kind: NodeKind,
+    val category: SlotCategory,
     val anchor: DomNode?,
     val range: TextRange,
     val parts: List<BlockPart>,

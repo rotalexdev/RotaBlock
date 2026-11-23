@@ -7,7 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class ValueKindOracleTest {
-    private val block = BlockNode(BlockId("b"), NodeKind("Literal"), null, TextRange(0, 2), emptyList())
+    private val block = BlockNode(BlockId("b"), NodeKind("Literal"), SlotCategory.EXPRESSION, null, TextRange(0, 2), emptyList())
 
     @Test
     fun anOracleMayClaimAKind() {

@@ -10,6 +10,7 @@ class BlockMappingExtensionPointTest {
     private fun mapping(language: String) = object : BlockMapping {
         override val languages: Set<LanguageId> = setOf(LanguageId(language))
         override val handles: Set<NodeKind> = emptySet()
+        override val categories: Map<NodeKind, SlotCategory> = emptyMap()
     }
 
     @Test

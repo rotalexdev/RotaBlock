@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 class BlockProjectionServiceTest {
     private val source = "f(42)"
     private val language = LanguageId("kotlin")
-    private val root = BlockNode(BlockId("root"), NodeKind.ROOT, null, TextRange(0, 5), emptyList())
+    private val root = BlockNode(BlockId("root"), NodeKind.ROOT, SlotCategory.STATEMENT, null, TextRange(0, 5), emptyList())
 
     private inner class FakeService : BlockProjectionService {
         var seenEdit: BlockEdit? = null

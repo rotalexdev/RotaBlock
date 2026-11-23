@@ -16,6 +16,7 @@ class BlockTreeTest {
     private fun leaf(id: String, start: Int, end: Int) = BlockNode(
         id = BlockId(id),
         kind = NodeKind("Leaf"),
+        category = SlotCategory.EXPRESSION,
         anchor = DomNode(NodeKind("Leaf"), TextRange(start, end), source),
         range = TextRange(start, end),
         parts = emptyList(),
@@ -24,6 +25,7 @@ class BlockTreeTest {
     private fun wrapping(rootRange: TextRange, child: BlockNode) = BlockNode(
         id = BlockId("root"),
         kind = NodeKind.ROOT,
+        category = SlotCategory.STATEMENT,
         anchor = DomNode(NodeKind.ROOT, rootRange, source),
         range = rootRange,
         parts = listOf(BlockPart.Slot(BlockSlot(SlotCategory.STATEMENT, listOf(child), true, null, ValueKind.UNKNOWN))),
@@ -50,6 +52,7 @@ class BlockTreeTest {
         val middle = BlockNode(
             id = BlockId("middle"),
             kind = NodeKind("Middle"),
+            category = SlotCategory.EXPRESSION,
             anchor = DomNode(NodeKind("Middle"), TextRange(1, 4), source),
             range = TextRange(1, 4),
             parts = listOf(BlockPart.Slot(BlockSlot(SlotCategory.OPAQUE, listOf(deepest), false, null, ValueKind.UNKNOWN))),
@@ -84,6 +87,7 @@ class BlockTreeTest {
         val root = BlockNode(
             id = BlockId("root"),
             kind = NodeKind.ROOT,
+            category = SlotCategory.STATEMENT,
             anchor = DomNode(NodeKind.ROOT, TextRange(0, 5), source),
             range = TextRange(0, 5),
             parts = listOf(

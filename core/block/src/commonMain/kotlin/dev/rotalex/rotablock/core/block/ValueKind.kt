@@ -11,6 +11,8 @@ enum class ValueKind {
     NUMBER,
     STRING,
     OBJECT,
+    ARRAY,
     TYPE,
+    NULL,
     UNKNOWN,
 }

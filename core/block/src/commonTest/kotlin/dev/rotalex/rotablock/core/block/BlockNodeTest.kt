@@ -13,11 +13,12 @@ class BlockNodeTest {
     private val source = "f(42)"
 
     @Test
-    fun keepsIdKindAnchorRangePartsLabelAndValueKind() {
+    fun keepsIdKindCategoryAnchorRangePartsLabelAndValueKind() {
         val anchor = DomNode(NodeKind.ROOT, range, source)
         val node = BlockNode(
             id = BlockId("call"),
             kind = NodeKind("CallExpression"),
+            category = SlotCategory.EXPRESSION,
             anchor = anchor,
             range = range,
             parts = emptyList(),
@@ -26,6 +27,7 @@ class BlockNodeTest {
         )
         assertEquals(BlockId("call"), node.id)
         assertEquals(NodeKind("CallExpression"), node.kind)
+        assertEquals(SlotCategory.EXPRESSION, node.category)
         assertEquals(anchor, node.anchor)
         assertEquals(range, node.range)
         assertEquals("call", node.label)
@@ -34,18 +36,18 @@ class BlockNodeTest {
 
     @Test
     fun aSyntheticChromeBlockHasNoAnchor() {
-        val node = BlockNode(BlockId("chrome"), NodeKind.ROOT, null, range, emptyList())
+        val node = BlockNode(BlockId("chrome"), NodeKind.ROOT, SlotCategory.OPAQUE, null, range, emptyList())
         assertNull(node.anchor)
     }
 
     @Test
     fun labelIsAbsentByDefault() {
-        assertNull(BlockNode(BlockId("node"), NodeKind.ROOT, null, range, emptyList()).label)
+        assertNull(BlockNode(BlockId("node"), NodeKind.ROOT, SlotCategory.OPAQUE, null, range, emptyList()).label)
     }
 
     @Test
     fun valueKindDefaultsToUnknown() {
-        assertEquals(ValueKind.UNKNOWN, BlockNode(BlockId("node"), NodeKind.ROOT, null, range, emptyList()).valueKind)
+        assertEquals(ValueKind.UNKNOWN, BlockNode(BlockId("node"), NodeKind.ROOT, SlotCategory.OPAQUE, null, range, emptyList()).valueKind)
     }
 
     @Test
@@ -56,6 +58,7 @@ class BlockNodeTest {
         val node = BlockNode(
             BlockId("call"),
             NodeKind.ROOT,
+            SlotCategory.OPAQUE,
             null,
             range,
             listOf(BlockPart.Field(first), BlockPart.Slot(slot), BlockPart.Field(second)),

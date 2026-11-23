@@ -46,6 +46,7 @@ class BlockSlotTest {
 private fun syntheticBlock(id: String) = BlockNode(
     id = BlockId(id),
     kind = NodeKind.ROOT,
+    category = SlotCategory.OPAQUE,
     anchor = null,
     range = TextRange(0, 0),
     parts = emptyList(),
