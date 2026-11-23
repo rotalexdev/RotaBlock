@@ -8,7 +8,7 @@ import dev.rotalex.rotablock.core.language.NodeKind
  * How one language, or one host, decomposes its syntax into blocks.
  *
  * [handles] is the decomposition boundary: a handled child becomes its own block, an unhandled child
- * collapses into a single editable text field, so no construct is ever a dead end. Both defaults are the
+ * collapses into a single editable text field, so no construct is ever a dead end. The defaults are the
  * generic behaviour, and a mapping that has nothing specific to say leaves them alone.
  */
 interface BlockMapping {
@@ -25,6 +25,9 @@ interface BlockMapping {
      * of letting the engine guess.
      */
     val categories: Map<NodeKind, SlotCategory>
+
+    /** The whitespace and separator rules of this language. */
+    val layout: LayoutPolicy
 
     /** Projects one node, carving it by default. */
     fun project(node: DomNode, context: ProjectionContext): BlockNode =

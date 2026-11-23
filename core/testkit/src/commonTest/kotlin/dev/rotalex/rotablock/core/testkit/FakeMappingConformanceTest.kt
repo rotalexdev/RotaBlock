@@ -1,6 +1,7 @@
 package dev.rotalex.rotablock.core.testkit
 
 import dev.rotalex.rotablock.core.block.BlockMapping
+import dev.rotalex.rotablock.core.block.LayoutPolicy
 import dev.rotalex.rotablock.core.block.SlotCategory
 import dev.rotalex.rotablock.core.language.LanguageId
 import dev.rotalex.rotablock.core.language.NodeKind
@@ -17,6 +18,7 @@ class FakeMappingConformanceTest : MappingConformance() {
                 override val languages: Set<LanguageId> = setOf(LanguageId("fake"))
                 override val handles: Set<NodeKind> = setOf(FakeMapping.HANDLED)
                 override val categories: Map<NodeKind, SlotCategory> = emptyMap()
+                override val layout: LayoutPolicy = LayoutPolicy.NONE
             }
         }
 
@@ -30,4 +32,5 @@ private object FakeMapping : BlockMapping {
     override val languages: Set<LanguageId> = setOf(LanguageId("fake"))
     override val handles: Set<NodeKind> = setOf(HANDLED)
     override val categories: Map<NodeKind, SlotCategory> = mapOf(HANDLED to SlotCategory.EXPRESSION)
+    override val layout: LayoutPolicy = LayoutPolicy.NONE
 }

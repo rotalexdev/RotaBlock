@@ -21,6 +21,7 @@ class BlockMappingTest {
             NodeKind("Call") to SlotCategory.EXPRESSION,
             NodeKind("Literal") to SlotCategory.EXPRESSION,
         )
+        override val layout: LayoutPolicy = LayoutPolicy.NONE
     }
 
     @Test
@@ -50,6 +51,7 @@ class BlockMappingTest {
             override val languages: Set<LanguageId> = setOf(LanguageId("kotlin"))
             override val handles: Set<NodeKind> = emptySet()
             override val categories: Map<NodeKind, SlotCategory> = emptyMap()
+            override val layout: LayoutPolicy = LayoutPolicy.NONE
             override fun project(node: DomNode, context: ProjectionContext): BlockNode =
                 context.block(NodeKind("Opaque"), node.range, listOf(BlockPart.Field(context.field("text", context.textOf(node), true, node.range))), node)
         }
