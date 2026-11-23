@@ -795,9 +795,11 @@ Node kinds and their projection:
 | `null` | Null literal | `EXPRESSION` | `NULL` | One editable field |
 | `ERROR` | Opaque block | `OPAQUE` | `UNKNOWN` | One editable field, flagged as error (§7.6) |
 
-Layout policy for JSON: separator `Comma` with a following space, `trailingSeparator = false`, indent
+Layout policy for JSON: separator `Custom(leading = "", trailing = ", ")`, which is the comma and the space
+the examples below require (`Comma` alone cannot express the space), `trailingSeparator = false`, indent
 `None` (JSON layout is the user's; the framework does not reformat), and the `onDelete`/`onInsert` rules
-that the examples in §6.5 spell out.
+that the examples in §6.5 spell out: removal takes the following separator, or the preceding one when the
+element is last, and insertion places a separator only when the element joins an existing one.
 
 Acceptance criteria for the reference language, all asserted by golden tests:
 
