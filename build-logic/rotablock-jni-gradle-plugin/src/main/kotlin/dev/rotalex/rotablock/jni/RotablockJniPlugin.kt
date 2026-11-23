@@ -19,8 +19,10 @@ class RotablockJniPlugin : Plugin<Project> {
 
         project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
             val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
-            kotlin.targets.matching { it.platformType == KotlinPlatformType.jvm }.all {
-                configureJvm(project, kotlin, extension, host)
+            project.afterEvaluate {
+                kotlin.targets
+                    .filter { it.platformType == KotlinPlatformType.jvm }
+                    .forEach { target -> configureJvm(project, kotlin, target.name, extension, host) }
             }
             configureAndroid(project, extension, host)
         }
