@@ -62,6 +62,7 @@ abstract class CmakeBuildTask @Inject constructor(
             val commonDir = commonSourceDir.get().asFile
             if (commonDir.absolutePath != srcDir.absolutePath) {
                 val commonDirNormalized = commonDir.absolutePath.replace('\\', '/')
+                val star = "*"
                 val injectionFile = workDir.resolve("rotablock_common.cmake")
                 injectionFile.writeText(
                     """
@@ -84,10 +85,10 @@ abstract class CmakeBuildTask @Inject constructor(
                             target_include_directories(${'$'}{TARGET_TO_INJECT} PRIVATE "$commonDirNormalized")
 
                             file(GLOB_RECURSE _ROTABLOCK_COMMON_SOURCES 
-                                "$commonDirNormalized/*.c" 
-                                "$commonDirNormalized/*.cpp" 
-                                "$commonDirNormalized/*.cc" 
-                                "$commonDirNormalized/*.cxx"
+                                "$commonDirNormalized/$star.c" 
+                                "$commonDirNormalized/$star.cpp" 
+                                "$commonDirNormalized/$star.cc" 
+                                "$commonDirNormalized/$star.cxx"
                             )
                             if (_ROTABLOCK_COMMON_SOURCES)
                                 target_sources(${'$'}{TARGET_TO_INJECT} PRIVATE ${'$'}{_ROTABLOCK_COMMON_SOURCES})

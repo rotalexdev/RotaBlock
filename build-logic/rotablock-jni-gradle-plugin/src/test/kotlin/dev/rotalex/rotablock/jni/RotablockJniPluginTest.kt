@@ -53,7 +53,6 @@ class RotablockJniPluginTest {
             .build()
 
         val output = result.output
-        // assertEquals(TaskOutcome.SUCCESS, result.task(":mergeRotablockJvmJniLibs")?.outcome)
         assertTrue(output.contains("mergeRotablockJvmJniLibs"))
         assertTrue(output.contains("compileCmakeJvm"))
     }

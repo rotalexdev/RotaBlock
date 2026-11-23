@@ -2,8 +2,6 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
 	`kotlin-dsl`
-//	alias(rootLibs.plugins.kotlin.jvm)
-//	`java-gradle-plugin`
 }
 
 gradlePlugin {
