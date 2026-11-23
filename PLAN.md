@@ -294,6 +294,7 @@ text.
                            └─► :core:language
 
 test only:   every module ─► :core:testkit
+build only:  build-logic ─► the plugin that compiles native code in :lang:* modules
 ```
 
 The graph is a DAG. The engine is not on the language path: a language module supplies data
@@ -763,8 +764,10 @@ Rules:
 
 A `:lang:*` module contains exactly three things:
 
-1. The generated grammar binding (`TreeSitterJson.language()` and its generated sources), produced by the
-   binding's generator, never hand-edited.
+1. The grammar binding (`TreeSitterJson.language()`): the grammar's own C sources, never hand-edited, and
+   the small Kotlin object that loads the compiled library. The upstream generator targets the classic
+   Android plugin and its own resource layout, so the binding is written against the layout of the JNI
+   build plugin in `build-logic` instead.
 2. The `BlockMapping` for that language: handled kinds, categories, layout policy, notation.
 3. Conformance and golden tests, using `:core:testkit` (`DEP-8`).
 
@@ -1043,6 +1046,7 @@ machine, and a benchmark that cannot run in CI is recorded with its manual proce
 | Parser | `io.github.tree-sitter:ktreesitter`, pinned through the catalog (`D-15`) |
 | Catalog | Published `io.github.alexanderrotela20.catalog:version-catalog:1.2.7`, imported as `rootLibs` |
 | Convention plugins | Published `io.github.alexanderrotela20.convention:*`, version from the catalog |
+| Native build | Local plugin `dev.rotalex.rotablock.jni` in `build-logic` |
 | Java target | 17 |
 | compileSdk / minSdk / targetSdk | 37 / 26 / 37 |
 | JDK | Toolchain 21 for the daemon, JVM target 17 |
@@ -1081,6 +1085,13 @@ the generator cannot run in CI, and then it is committed with its generation com
 The tree-sitter binding ships native binaries per platform (`R-7`): the Android artifact size is measured
 per release, and a language module that adds a grammar adds its own binary. An ABI split or a debug-only
 grammar set is a packaging decision recorded here before it is implemented.
+
+A language module that carries C sources applies `dev.rotalex.rotablock.jni`, from the `build-logic`
+included build. The plugin compiles the desktop library for the host through CMake and cross-compiles every
+Android ABI through the NDK, then packages the result where each target loads it: Android jniLibs through
+the variant API, desktop under `jni/<classifier>` resources. It is the only native build path in the
+repository, and it exists because the AGP 9 multiplatform library plugin exposes no `externalNativeBuild`
+DSL. `build-logic` is build logic, not a product module: it is on no product module's compile classpath.
 
 ---
 
