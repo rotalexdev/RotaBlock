@@ -17,9 +17,11 @@ import io.github.treesitter.ktreesitter.Parser
  *
  * It is written once for every grammar: the grammar arrives as data and the adapter applies the same rules
  * to all of them. Named children become nodes and anonymous tokens are dropped, because only the former
- * carry structure. Kinds are namespaced by [language], so two grammars may use the same type name without
- * colliding, and a node the parser could not understand becomes [NodeKind.ERROR]. Byte offsets never leave
- * this class: every range is converted to UTF-16 code units through [Document].
+ * carry structure; a token the parser had to invent to finish a production is not dropped, because it names
+ * the position where the text is incomplete. Kinds are namespaced by [language], so two grammars may use the
+ * same type name without colliding, and both a node the parser could not understand and a missing token
+ * become [NodeKind.ERROR]. Byte offsets never leave this class: every range is converted to UTF-16 code
+ * units through [Document].
  *
  * @param language the language this adapter serves and the namespace of the kinds it produces.
  * @param grammar the tree-sitter grammar to parse with.
@@ -40,7 +42,19 @@ class TreeSitterAdapter(
             document.charOffset(node.startByte.toInt()),
             document.charOffset(node.endByte.toInt()),
         )
-        val children = node.namedChildren.map { convert(it, document, isRoot = false) }
+        val children = node.children.mapNotNull { child ->
+            when {
+                child.isMissing -> {
+                    val missing = TextRange(
+                        document.charOffset(child.startByte.toInt()),
+                        document.charOffset(child.endByte.toInt()),
+                    )
+                    DomNode(NodeKind.ERROR, missing, document.text)
+                }
+                child.isNamed -> convert(child, document, isRoot = false)
+                else -> null
+            }
+        }
         return DomNode(kindOf(node, isRoot), range, document.text, children)
     }
 
