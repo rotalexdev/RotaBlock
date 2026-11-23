@@ -10,9 +10,10 @@ RotaBlock is a language-neutral projectional block editor framework built with K
 Text is the only stored representation; blocks are a live projection of the parsed text; every block
 edit compiles back into a minimal text edit.
 
-Modules: `:language-api`, `:block-api`, `:block-impl`, `:shared`, `:androidApp`, `:desktopApp`.
-`PLAN.md` section 5 defines the target module graph (`:core`, `:parser`, `:lang`, `:ui`) and section 20
-defines the ordered migration to it; until that migration lands, the names above are the current ones.
+Modules: `:core:language`, `:core:block`, `:core:engine`, `:ui:block`, `:shared`, `:androidApp`,
+`:desktopApp`. `PLAN.md` section 5 defines the target module graph (`:core`, `:parser`, `:lang`, `:ui`)
+and section 20 the ordered migration to it; modules missing from the list above arrive as that
+migration lands.
 Applications are entrypoints only. All product code lives in `:shared` and below.
 
 ## 2. Build environment

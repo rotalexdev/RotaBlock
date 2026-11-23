@@ -21,10 +21,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "rotablock"
 
-include(":language-api")
-include(":block-api")
-include(":block-impl")
-include(":block-ui")
+include(":core:language")
+include(":core:block")
+include(":core:engine")
+include(":ui:block")
 include(":shared")
 include(":androidApp")
 include(":desktopApp")
