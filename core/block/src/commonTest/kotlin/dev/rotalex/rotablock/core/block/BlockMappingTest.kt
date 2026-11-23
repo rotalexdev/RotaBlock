@@ -17,6 +17,10 @@ class BlockMappingTest {
     private class CallMapping : BlockMapping {
         override val languages: Set<LanguageId> = setOf(LanguageId("kotlin"))
         override val handles: Set<NodeKind> = setOf(NodeKind("Call"), NodeKind("Literal"))
+        override val categories: Map<NodeKind, SlotCategory> = mapOf(
+            NodeKind("Call") to SlotCategory.EXPRESSION,
+            NodeKind("Literal") to SlotCategory.EXPRESSION,
+        )
     }
 
     @Test
@@ -45,6 +49,7 @@ class BlockMappingTest {
         val custom = object : BlockMapping {
             override val languages: Set<LanguageId> = setOf(LanguageId("kotlin"))
             override val handles: Set<NodeKind> = emptySet()
+            override val categories: Map<NodeKind, SlotCategory> = emptyMap()
             override fun project(node: DomNode, context: ProjectionContext): BlockNode =
                 context.block(NodeKind("Opaque"), node.range, listOf(BlockPart.Field(context.field("text", context.textOf(node), true, node.range))), node)
         }
@@ -62,6 +67,7 @@ class BlockMappingTest {
         val block = BlockNode(
             BlockId("call"),
             kind,
+            SlotCategory.EXPRESSION,
             null,
             TextRange(0, 5),
             listOf(BlockPart.Field(open), BlockPart.Field(value), BlockPart.Field(close)),
@@ -72,11 +78,12 @@ class BlockMappingTest {
     @Test
     fun serializeRecursesIntoSlotChildren() {
         val mapping = CallMapping()
-        val inner = BlockNode(BlockId("inner"), kind, null, TextRange(2, 4), listOf(BlockPart.Field(BlockField.chrome("text", "42"))))
+        val inner = BlockNode(BlockId("inner"), kind, SlotCategory.EXPRESSION, null, TextRange(2, 4), listOf(BlockPart.Field(BlockField.chrome("text", "42"))))
         val slot = BlockSlot(SlotCategory.EXPRESSION, listOf(inner), false, null, ValueKind.NUMBER)
         val block = BlockNode(
             BlockId("outer"),
             kind,
+            SlotCategory.EXPRESSION,
             null,
             TextRange(0, 5),
             listOf(BlockPart.Field(BlockField.chrome("open", "f(")), BlockPart.Slot(slot), BlockPart.Field(BlockField.chrome("close", ")"))),
@@ -86,7 +93,7 @@ class BlockMappingTest {
 
     @Test
     fun serializeOfALeafIsItsFieldText() {
-        val leaf = BlockNode(BlockId("leaf"), kind, null, TextRange(0, 2), listOf(BlockPart.Field(BlockField("text", "42", false, null))))
+        val leaf = BlockNode(BlockId("leaf"), kind, SlotCategory.EXPRESSION, null, TextRange(0, 2), listOf(BlockPart.Field(BlockField("text", "42", false, null))))
         assertEquals("42", CallMapping().serialize(leaf))
     }
 }

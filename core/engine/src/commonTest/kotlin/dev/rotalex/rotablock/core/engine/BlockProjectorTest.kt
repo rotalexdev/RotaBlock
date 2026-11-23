@@ -15,6 +15,7 @@ import dev.rotalex.rotablock.core.language.ParsedFile
 import dev.rotalex.rotablock.core.language.TextRange
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -27,7 +28,9 @@ class BlockProjectorTest {
     private class TestMapping(
         override val languages: Set<LanguageId> = setOf(LanguageId("test")),
         override val handles: Set<NodeKind> = setOf(NodeKind("Call")),
-    ) : BlockMapping
+    ) : BlockMapping {
+        override val categories: Map<NodeKind, SlotCategory> = handles.associateWith { SlotCategory.EXPRESSION }
+    }
 
     private fun registrations(vararg mappings: BlockMapping): ExtensionPoint<BlockMapping> {
         val point = ExtensionPoint<BlockMapping>("test.mappings")
@@ -46,7 +49,7 @@ class BlockProjectorTest {
 
     private fun project(
         parsed: ParsedFile = parsed(),
-        mapper: TestMapping = TestMapping(),
+        mapper: BlockMapping = TestMapping(),
         oracle: ValueKindOracle? = null,
     ): BlockNode = BlockProjector(registrations(mapper), oracle).project(parsed, kotlin).root
 
@@ -120,7 +123,7 @@ class BlockProjectorTest {
         val first = BlockProjector(registrations(TestMapping()), null).project(parsed(), kotlin).root
         val second = BlockProjector(registrations(TestMapping()), null).project(parsed(), kotlin).root
         assertEquals(idsOf(first), idsOf(second))
-        assertEquals(listOf("b0", "b1"), idsOf(first))
+        assertEquals(listOf("Call", "Call/Literal#0"), idsOf(first))
     }
 
     @Test
@@ -145,6 +148,40 @@ class BlockProjectorTest {
     fun aSlotTakesItsKindFromTheContentItHolds() {
         val root = project(oracle = ValueKindOracle { ValueKind.STRING })
         assertEquals(ValueKind.STRING, (root.parts[1] as BlockPart.Slot).slot.valueKind)
+    }
+
+    @Test
+    fun aBlockCarriesTheCategoryItsMappingDeclares() {
+        val mapper = object : BlockMapping {
+            override val languages: Set<LanguageId> = setOf(kotlin)
+            override val handles: Set<NodeKind> = setOf(call)
+            override val categories: Map<NodeKind, SlotCategory> = mapOf(call to SlotCategory.DECLARATION)
+        }
+        assertEquals(SlotCategory.DECLARATION, project(mapper = mapper).category)
+    }
+
+    @Test
+    fun aKindTheMappingDoesNotHandleIsOpaque() {
+        val child = (project().parts[1] as BlockPart.Slot).slot.children.single()
+        assertEquals(SlotCategory.OPAQUE, child.category)
+    }
+
+    @Test
+    fun aHandledKindWithoutADeclaredCategoryIsNotGuessed() {
+        val mapper = object : BlockMapping {
+            override val languages: Set<LanguageId> = setOf(kotlin)
+            override val handles: Set<NodeKind> = setOf(call)
+            override val categories: Map<NodeKind, SlotCategory> = emptyMap()
+        }
+        assertFailsWith<IllegalStateException> { project(mapper = mapper) }
+    }
+
+    @Test
+    fun idsFollowTheParsePathAndNotTheOffsets() {
+        val other = ParsedFile("f(99)", 1L, DomNode(call, TextRange(0, 5), "f(99)", listOf(DomNode(literal, TextRange(2, 4), "f(99)"))))
+        val first = BlockProjector(registrations(TestMapping()), null).project(parsed(), kotlin).root
+        val second = BlockProjector(registrations(TestMapping()), null).project(other, kotlin).root
+        assertEquals(idsOf(first), idsOf(second))
     }
 
     @Test

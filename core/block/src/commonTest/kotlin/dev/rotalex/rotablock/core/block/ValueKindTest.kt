@@ -7,7 +7,7 @@ class ValueKindTest {
     @Test
     fun theValueKindSetIsClosed() {
         assertEquals(
-            listOf("BOOLEAN", "NUMBER", "STRING", "OBJECT", "TYPE", "UNKNOWN"),
+            listOf("BOOLEAN", "NUMBER", "STRING", "OBJECT", "ARRAY", "TYPE", "NULL", "UNKNOWN"),
             ValueKind.entries.map { it.name },
         )
     }

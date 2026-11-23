@@ -18,6 +18,14 @@ interface BlockMapping {
     /** The node kinds this mapping decomposes. */
     val handles: Set<NodeKind>
 
+    /**
+     * The category each handled kind produces, which is what makes a slot's acceptance decidable.
+     *
+     * Every kind in [handles] must have an entry: a mapping that leaves one out fails conformance instead
+     * of letting the engine guess.
+     */
+    val categories: Map<NodeKind, SlotCategory>
+
     /** Projects one node, carving it by default. */
     fun project(node: DomNode, context: ProjectionContext): BlockNode =
         context.block(kind = node.kind, range = node.range, parts = context.carve(node), anchor = node)

@@ -10,6 +10,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":core:language"))
+            api(project(":core:block"))
             api(kotlin("test"))
         }
         desktopMain.dependencies {

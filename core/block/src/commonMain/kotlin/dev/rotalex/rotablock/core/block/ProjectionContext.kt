@@ -27,6 +27,14 @@ interface ProjectionContext {
     /** Projects one child node in isolation. */
     fun child(node: DomNode): BlockNode
 
+    /**
+     * The category a block of [kind] declares.
+     *
+     * A kind the mapping handles without a declared category is a mapping defect and is not guessed; a kind
+     * the mapping does not handle is opaque and accepts anything.
+     */
+    fun category(kind: NodeKind): SlotCategory
+
     /** Builds a block, letting the engine assign its id. */
     fun block(
         kind: NodeKind,
