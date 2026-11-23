@@ -24,12 +24,14 @@ The host is Windows, driven from WSL. The toolchain lives on the Windows side.
 powershell.exe .\gradlew.bat build
 powershell.exe .\gradlew.bat :shared:allTests
 powershell.exe .\gradlew.bat :desktopApp:run
+powershell.exe .\gradlew.bat -p build-logic test
 ```
 
 - Never run `./gradlew`, `gradlew` or a local `gradle` from WSL. There is no Gradle in WSL by design.
 - Never install a JDK, Gradle or Kotlin into WSL to make a build work.
 - `local.properties` holds `sdk.dir` and is never committed.
-- CI runs on Linux and is the only place where `./gradlew` is correct.
+- CI runs on Linux and is the only place where `./gradlew` is correct. `build-logic` is a second included
+build that holds the native JNI plugin; its tests run through the root wrapper with `-p build-logic`.
 
 ## 3. Dependencies
 
