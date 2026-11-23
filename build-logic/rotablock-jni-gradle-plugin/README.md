@@ -88,64 +88,61 @@ plugins {
 ```
 ### 2. Configure Extension
 
-Configure the rotablockJni block. Only libraryName is strictly required;
-remaining options provide defaults following standard conventions.
+Only the platform CMakeLists.txt files are needed. Every option defaults to the
+standard layout, so an empty block works when the sources sit where the
+conventions expect them.
 ```kotlin
 rotablockJni {
-    // Required: Name of the generated shared library (without 'lib' prefix)
-    libraryName = "my_library"
-
-    // Optional: Extra arguments passed directly to all CMake invocations
     extraArgs = listOf("-DCMAKE_VERBOSE_MAKEFILE=ON")
 
-    // Optional: Location of the shared C/C++ source directory
-    // Default: "src/commonMain/jni"
-    commonJniDir = "src/commonMain/jni"
+    common {
+        cmakeLists = "src/commonMain/jni/CMakeLists.txt"
+    }
 
     android {
-        // Optional: Custom CMakeLists.txt path for Android
-        // Default: "src/androidMain/jni/CMakeLists.txt"
         cmakeLists = "src/androidMain/jni/CMakeLists.txt"
-
-        // Optional: Overrides minSdk (resolved from Catalog -> gradle.properties)
         minSdk = 26
-
-        // Optional: Overrides NDK version (resolved from Catalog -> gradle.properties)
         ndkVersion = "30.0.14904198"
+        arm64V8a()
+        armeabiV7a()
+        x86_64()
+        x86()
     }
 
     jvm {
-        // Optional: Custom CMakeLists.txt path for JVM Desktop
-        // Default: "src/jvmMain/jni/CMakeLists.txt"
         cmakeLists = "src/jvmMain/jni/CMakeLists.txt"
     }
 }
 ```
 
+The library name is not configured on the extension: it is whatever the
+CMakeLists.txt declares with `add_library`, and the compiled artifact keeps that
+name.
+
 ## CMake Integration
 
-The plugin automatically provides predefined variables to your CMakeLists.txt
-files depending on the target environment.
+The plugin passes the following to every CMake invocation:
 
-### Variables Provided by the Plugin
+  - CMAKE_BUILD_TYPE=Release.
+  - JAVA_HOME on desktop, so a CMakeLists.txt can find the JNI headers with
+    find_package(JNI REQUIRED).
+  - For Android: the NDK toolchain file, ANDROID_ABI, ANDROID_PLATFORM,
+    CMAKE_SYSTEM_VERSION and ANDROID_STL=c++_static, with Ninja as the generator.
 
-  - ROTABLOCK_HAS_COMMON: Set to ON if commonJniDir exists on disk; OFF
-    otherwise.
-  - ROTABLOCK_COMMON_JNI_DIR: Absolute normalized path to commonMain/jni.
-  - CMAKE_BUILD_TYPE: Set to Release.
-  - ANDROID_ABI, ANDROID_PLATFORM, ANDROID_STL: Injected automatically for
-    Android targets via the NDK toolchain file.
+When `src/commonMain/jni/CMakeLists.txt` exists, the plugin writes a small
+injection file and passes it as CMAKE_PROJECT_INCLUDE. The file defers a
+function that, once the platform project has declared its targets, adds the
+common source directory to the include path of its first SHARED_LIBRARY target
+and compiles every C and C++ file under it into that target. A common directory
+therefore needs no add_subdirectory and no target_link_libraries from the
+platform CMakeLists.txt, and a common CMakeLists.txt is only required by the
+desktop build when the platform file is absent.
 
 ### Android CMakeLists.txt Example (src/androidMain/jni/CMakeLists.txt)
 
 ```cmake
 cmake_minimum_required(VERSION 3.10)
 project(android_lib C CXX)
-
-# Include shared core if present
-if (ROTABLOCK_HAS_COMMON)
-    add_subdirectory(${ROTABLOCK_COMMON_JNI_DIR} common_build)
-endif()
 
 find_library(LOG_LIB log)
 
@@ -159,10 +156,6 @@ target_link_libraries(
     android_lib
     ${LOG_LIB}
 )
-
-if (ROTABLOCK_HAS_COMMON)
-    target_link_libraries(android_lib common)
-endif()
 ```
 
 ### Desktop CMakeLists.txt Example (src/jvmMain/jni/CMakeLists.txt)
@@ -171,11 +164,6 @@ endif()
 cmake_minimum_required(VERSION 3.10)
 project(jvm_lib C CXX)
 
-if (ROTABLOCK_HAS_COMMON)
-    add_subdirectory(${ROTABLOCK_COMMON_JNI_DIR} common_build)
-endif()
-
-# Locate JNI headers using JDK path provided by the host environment
 find_package(JNI REQUIRED)
 
 add_library(
@@ -189,13 +177,9 @@ target_include_directories(
     PRIVATE
     ${JNI_INCLUDE_DIRS}
 )
-
-if (ROTABLOCK_HAS_COMMON)
-    target_link_libraries(jvm_lib common)
-endif()
 ```
 
-### Shared CMakeLists.txt Example (src/commonMain/jni/CMakeLists.txt)
+### Common CMakeLists.txt Example (src/commonMain/jni/CMakeLists.txt)
 
 ```cmake
 cmake_minimum_required(VERSION 3.10)
