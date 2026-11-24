@@ -28,3 +28,5 @@ odd/
 .codegraph-wsl/
 CLAUDE.md
 AGENTS.local.md
+__pycache__/
+*.py[cod]
