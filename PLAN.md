@@ -997,15 +997,17 @@ exit-observable output.
 
 ### 10.5 Documentation checks
 
-`PLAN.md` is checked by a script in CI, because a reference that does not resolve is a defect and not a
-style issue (`§1`):
+`PLAN.md` is checked by `tools/plan_policy.py` in CI, because a reference that does not resolve is a
+defect and not a style issue (`§1`):
 
-- every `P-`, `DEP-`, `I-`, `R-`, `D-`, `Q-`, `M-` reference resolves to a definition in this file;
-- every `§n.m` reference resolves to an existing heading;
-- no identifier is defined twice;
-- every public type named in §6 exists in the corresponding module's source;
-- `AGENTS.md` names the same modules as §5.3, checked only once the migration step of §20.1 that
-  renames them has landed.
+- every `P-`, `DEP-`, `I-`, `R-`, `D-`, `Q-`, `M-` reference resolves to a definition row of this file,
+  and no identifier is defined twice;
+- every `§n.m` reference resolves to a heading with that number, and a fenced block is neither a
+  definition nor a reference;
+- every public type named in §6 resolves to a declaration in a production source set of a module, to an
+  enum entry, or to a Kotlin standard-library type;
+- §5.3, the module list of `AGENTS.md` and the `include` calls of `settings.gradle.kts` name the same
+  modules.
 
 ### 10.6 Flaky tests
 
