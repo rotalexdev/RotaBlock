@@ -118,3 +118,13 @@ jobs:
             echo "$block_comments"
             exit 1
           fi
+
+  plan-policy:
+    name: plan-policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the plan references
+        run: python3 tools/plan_policy.py .
+      - name: Test the plan check
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
