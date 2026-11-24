@@ -73,7 +73,7 @@ internal fun configureAndroid(
                     description = "Build JNI libraries for Android using CMake ($abi)"
 
                     sourceDir.set(cmakeSourceDir)
-                    if (commonFile.isFile) commonSourceDir.set(commonFile.parentFile)
+                    if (commonFile.parentFile.isDirectory) commonSourceDir.set(commonFile.parentFile)
                     cmakeArgs.set(project.provider {
                         JniTarget.create(
                             project,

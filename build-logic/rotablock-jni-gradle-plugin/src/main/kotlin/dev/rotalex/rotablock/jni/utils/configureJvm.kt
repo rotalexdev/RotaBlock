@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 internal fun configureJvm(
     project: Project,
     kotlin: KotlinMultiplatformExtension,
+    targetName: String,
     extension: RotablockJniExtension,
     host: HostPlatform,
 ) {
@@ -59,7 +60,7 @@ internal fun configureJvm(
 
 
             sourceDir.set(cmakeSourceDir)
-            if (commonFile.isFile) commonSourceDir.set(commonFile.parentFile)
+            if (commonFile.parentFile.isDirectory) commonSourceDir.set(commonFile.parentFile)
             cmakeArgs.set(project.provider { JniTarget.create( project, classifier, extension).cmakeArgs })
             libraryExtension.set(classifier.libraryExtension)
             workingDir.set(
@@ -75,7 +76,7 @@ internal fun configureJvm(
         }
     }
 
-    kotlin.sourceSets.matching { it.name == "jvmMain" }.configureEach {
+    kotlin.sourceSets.matching { it.name == "${targetName}Main" }.configureEach {
         resources.srcDir(mergeJvmLibsTask.flatMap { it.outputDirectory })
     }
 }
