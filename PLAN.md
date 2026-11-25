@@ -767,7 +767,8 @@ A `:lang:*` module contains exactly three things:
 1. The grammar binding (`TreeSitterJson.language()`): the grammar's own C sources, never hand-edited, and
    the small Kotlin object that loads the compiled library. The upstream generator targets the classic
    Android plugin and its own resource layout, so the binding is written against the layout of the JNI
-   build plugin in `build-logic` instead.
+   build plugin in `build-logic` instead. The grammar arrives as a git submodule pinned to a release tag,
+   and that tag is the version the catalog records for it (`R-8`, §12.1).
 2. The `BlockMapping` for that language: handled kinds, categories, layout policy, notation.
 3. Conformance and golden tests, using `:core:testkit` (`DEP-8`).
 
