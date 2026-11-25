@@ -11,5 +11,8 @@ kotlin {
         commonMain.dependencies {
             api(project(":core:block"))
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
