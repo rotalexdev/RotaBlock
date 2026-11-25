@@ -1,6 +1,7 @@
 [versions]
 androidx-activity = "1.10.1"
 ktreesitter = "0.26.0"
+tree-sitter-json = "0.24.8" # the grammar submodule lang/json/tree-sitter-json; pinned with the binding
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
