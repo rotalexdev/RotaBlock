@@ -1354,5 +1354,6 @@ for a handled kind fails conformance rather than guessing (`§8.6`).
 | --- | --- |
 | `PLAN.md` | Authority for every rule; changed in the pull request that changes a rule (§1.2) |
 | `AGENTS.md` | Module list, build commands and the session checklist; changed in step 1 (§20.2) |
-| `.github/workflows/ci.yml` | Adds the `plan-policy` gate of §13.8 |
+| `.github/workflows/ci.yml` | Checks out the grammar submodules and installs the NDK version the JNI plugin resolves (§8.3) |
+| `.github/workflows/pr-policy.yml` | Adds the `plan-policy` job of §13.8 |
 | `gradle/libs.versions.toml` | Adds the tree-sitter binding and each grammar, with the reason recorded (§12.1) |
