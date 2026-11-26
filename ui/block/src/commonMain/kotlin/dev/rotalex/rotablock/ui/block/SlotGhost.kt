@@ -11,13 +11,18 @@ import dev.rotalex.rotablock.core.block.ValueKind
  *
  * @property category the structural grammar the slot accepts.
  * @property label the short name shown inside the ghost.
+ * @property boolean whether the slot accepts a boolean, which draws the ghost as a hexagon.
  */
-class SlotGhost(val category: SlotCategory, val label: String)
+class SlotGhost(val category: SlotCategory, val label: String, val boolean: Boolean = false)
 
 /** The ghost [slot] renders, or `null` when the slot already holds a block. */
 fun ghostOf(slot: BlockSlot): SlotGhost? {
     if (slot.children.isNotEmpty()) return null
-    return SlotGhost(slot.category, labelOf(slot.category, slot.valueKind))
+    return SlotGhost(
+        category = slot.category,
+        label = labelOf(slot.category, slot.valueKind),
+        boolean = slot.valueKind == ValueKind.BOOLEAN,
+    )
 }
 
 /**

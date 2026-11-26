@@ -127,18 +127,6 @@ internal fun treeOf(children: List<BlockNode>): BlockTree = BlockTree(
     language = LanguageId("test"),
 )
 
-internal val testMetrics = BlockMetrics(
-    textHeight = 20f,
-    paddingX = 10f,
-    paddingY = 5f,
-    rowGap = 5f,
-    tokenGap = 6f,
-    indent = 16f,
-    chipPaddingX = 6f,
-    corner = 7f,
-    tabWidth = 16f,
-    tabHeight = 7f,
-    minBlockWidth = 60f,
-)
+internal val testMetrics = BlockMetrics(grid = 4f)
 
 internal val charSizer = TextSizer { text, _ -> text.length * 8f }
