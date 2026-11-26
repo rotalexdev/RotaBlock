@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import dev.rotalex.rotablock.core.block.BlockField
+import dev.rotalex.rotablock.core.block.BlockId
 import dev.rotalex.rotablock.core.block.BlockNode
 import dev.rotalex.rotablock.core.block.BlockTree
 import dev.rotalex.rotablock.core.block.SlotCategory
@@ -17,6 +18,9 @@ import dev.rotalex.rotablock.core.block.ValueKind
  * @property style the style it is measured and painted with.
  * @property chip whether the token carries a chip background.
  * @property valueKind the shape of the value the token carries, which picks the colour of its block.
+ * @property blockId the block whose field the token renders, which hoisting and inlining can make differ
+ * from the block whose bar carries it.
+ * @property fieldIndex the position of that field within the block's fields.
  * @property lead how far the text is set back from the box's left edge, which a pointed value needs.
  */
 class PlacedToken(
@@ -25,6 +29,8 @@ class PlacedToken(
     val style: BlockTextStyle,
     val chip: Boolean,
     val valueKind: ValueKind,
+    val blockId: BlockId,
+    val fieldIndex: Int,
     val lead: Float = 0f,
 )
 
@@ -34,8 +40,17 @@ class PlacedToken(
  * @property label the word shown inside it.
  * @property rect the box it occupies.
  * @property boolean whether the slot accepts a boolean, which draws the ghost as a hexagon.
+ * @property blockId the block that owns the slot, which is also the block whose bar shows the ghost.
+ * @property slotIndex the position of that slot within the block's slots, or `-1` when the projection
+ * offers no slot the ghost could fill.
  */
-class PlacedGhost(val label: String, val rect: Rect, val boolean: Boolean = false)
+class PlacedGhost(
+    val label: String,
+    val rect: Rect,
+    val boolean: Boolean,
+    val blockId: BlockId,
+    val slotIndex: Int,
+)
 
 /**
  * One block of the surface, placed: its silhouette, the tokens of its opening and closing bars, its
@@ -107,11 +122,20 @@ fun layoutBlocks(
 ): BlockLayout {
     val top = tree.root.slots.flatMap { slot -> slot.children }
     if (top.isEmpty()) {
-        val emptySlot = tree.root.slots.firstOrNull { it.children.isEmpty() }
+        val emptyIndex = tree.root.slots.indexOfFirst { it.children.isEmpty() }
+        val emptySlot = tree.root.slots.getOrNull(emptyIndex)
         val label = emptySlot?.let { slot -> ghostOf(slot)?.label }
         val ghost = label?.let { text ->
-            val width = sizer.width(text, BlockTextStyle.GHOST) + metrics.chipPaddingX * 2
-            PlacedGhost(text, Rect(Offset.Zero, Size(width, metrics.chipHeight)), boolean = false)
+            val boolean = emptySlot?.valueKind == ValueKind.BOOLEAN
+            val width = sizer.width(text, BlockTextStyle.GHOST) + metrics.chipPaddingX * 2 +
+                if (boolean) metrics.hexCut * 2 else 0f
+            PlacedGhost(
+                label = text,
+                rect = Rect(Offset.Zero, Size(width, metrics.chipHeight)),
+                boolean = boolean,
+                blockId = tree.root.id,
+                slotIndex = emptyIndex,
+            )
         }
         return BlockLayout(emptyList(), ghost?.rect?.right ?: 0f, ghost?.rect?.bottom ?: 0f, ghost)
     }
@@ -136,11 +160,19 @@ private class TokenSpec(
     val style: BlockTextStyle,
     val chip: Boolean,
     val valueKind: ValueKind,
+    val blockId: BlockId,
+    val fieldIndex: Int,
     val lead: Float,
     val width: Float,
 )
 
-private class GhostSpec(val label: String, val width: Float, val boolean: Boolean)
+private class GhostSpec(
+    val label: String,
+    val width: Float,
+    val boolean: Boolean,
+    val blockId: BlockId,
+    val slotIndex: Int,
+)
 
 private class Form(
     val block: BlockNode,
@@ -163,22 +195,27 @@ private fun tokenOf(
     pointed: Boolean,
     sizer: TextSizer,
     metrics: BlockMetrics,
+    blockId: BlockId,
+    fieldIndex: Int,
 ): TokenSpec? {
     val text = displayText(field)
     if (text.isEmpty()) return null
     val style = if (field.editable) BlockTextStyle.CHIP else BlockTextStyle.TOKEN
     val lead = if (pointed && field.editable && owner == ValueKind.BOOLEAN) metrics.hexCut else 0f
     val width = sizer.width(text, style) + if (field.editable) metrics.chipPaddingX * 2 else 0f
-    return TokenSpec(text, style, field.editable, owner, lead, width + lead * 2)
+    return TokenSpec(text, style, field.editable, owner, blockId, fieldIndex, lead, width + lead * 2)
 }
 
 private fun tokensOf(
+    block: BlockNode,
     fields: List<BlockField>,
-    owner: ValueKind,
     sizer: TextSizer,
     metrics: BlockMetrics,
     pointed: Boolean = false,
-): List<TokenSpec> = fields.mapNotNull { field -> tokenOf(field, owner, pointed, sizer, metrics) }
+): List<TokenSpec> = fields.mapIndexedNotNull { position, field ->
+    val fieldIndex = block.fields.indexOf(field).takeIf { it >= 0 } ?: position
+    tokenOf(field, block.valueKind, pointed, sizer, metrics, block.id, fieldIndex)
+}
 
 private fun formOf(block: BlockNode, sizer: TextSizer, metrics: BlockMetrics): Form {
     val open = mutableListOf<TokenSpec>()
@@ -189,14 +226,14 @@ private fun formOf(block: BlockNode, sizer: TextSizer, metrics: BlockMetrics): F
     linesOf(block).forEach { line ->
         when (line) {
             is BlockLine.Tokens -> {
-                val specs = tokensOf(line.fields, block.valueKind, sizer, metrics)
+                val specs = tokensOf(block, line.fields, sizer, metrics)
                 if (seenSlot) closing += specs else open += specs
             }
             is BlockLine.Hole -> {
                 seenSlot = true
                 val width = sizer.width(line.ghost.label, BlockTextStyle.GHOST) + metrics.chipPaddingX * 2 +
                     if (line.ghost.boolean) metrics.hexCut * 2 else 0f
-                ghost = GhostSpec(line.ghost.label, width, line.ghost.boolean)
+                ghost = GhostSpec(line.ghost.label, width, line.ghost.boolean, block.id, line.slotIndex)
             }
             is BlockLine.Children -> {
                 seenSlot = true
@@ -204,8 +241,8 @@ private fun formOf(block: BlockNode, sizer: TextSizer, metrics: BlockMetrics): F
                 val inline = line.blocks.singleOrNull()?.takeIf { child -> singular && child.slots.isEmpty() }
                 if (inline != null) {
                     open += tokensOf(
+                        block = inline,
                         fields = inline.fields,
-                        owner = inline.valueKind,
                         sizer = sizer,
                         metrics = metrics,
                         pointed = inline.valueKind == ValueKind.BOOLEAN,
@@ -297,6 +334,8 @@ private fun place(
             label = spec.label,
             rect = Rect(start, barTop, start + spec.width, barTop + metrics.chipHeight),
             boolean = spec.boolean,
+            blockId = spec.blockId,
+            slotIndex = spec.slotIndex,
         )
     }
     val children = mutableListOf<PlacedBlock>()
@@ -346,6 +385,15 @@ private fun placeRow(
     return tokens.map { token ->
         val rect = Rect(cursor, top, cursor + token.width, top + metrics.chipHeight)
         cursor = rect.right + metrics.tokenGap
-        PlacedToken(token.text, rect, token.style, token.chip, token.valueKind, token.lead)
+        PlacedToken(
+            text = token.text,
+            rect = rect,
+            style = token.style,
+            chip = token.chip,
+            valueKind = token.valueKind,
+            blockId = token.blockId,
+            fieldIndex = token.fieldIndex,
+            lead = token.lead,
+        )
     }
 }

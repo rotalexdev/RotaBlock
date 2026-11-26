@@ -15,6 +15,8 @@ import dev.rotalex.rotablock.core.block.ValueKind
  * @property onBlock the colour of a block's own text.
  * @property ghostBorder the dashed border of an empty slot.
  * @property ghostText the colour of the words that name what an empty slot accepts.
+ * @property focusRing the ring that marks the focused block or field, which is the one hue no family uses.
+ * @property focusGhost the emphasis an empty slot carries while it holds the focus.
  */
 class BlockPalette(
     val declaration: Color = Color(0xFFC2185B),
@@ -25,6 +27,8 @@ class BlockPalette(
     val onBlock: Color = Color(0xFFFFFFFF),
     val ghostBorder: Color = Color(0xFF9E9E9E),
     val ghostText: Color = Color(0xFF6E6E6E),
+    val focusRing: Color = Color(0xFF7C4DFF),
+    val focusGhost: Color = Color(0x337C4DFF),
 ) {
     /** The fill of a block with [category] holding a value of [valueKind]. */
     fun fill(category: SlotCategory, valueKind: ValueKind): Color = when (valueKind) {
