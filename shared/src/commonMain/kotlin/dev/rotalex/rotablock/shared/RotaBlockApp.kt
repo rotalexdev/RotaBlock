@@ -61,13 +61,11 @@ private val OUTLINE_BACKGROUND = Color(0xFFFAF7EF)
 private val SAMPLE_DOCUMENT = """
     {
       "path": "/greeting",
-      "method": "GET",
+      "cached": true,
       "handler": {
-        "name": "greeting",
         "status": 200,
         "body": {
-          "message": "Hello",
-          "items": [1, 2, 3]
+          "items": [1, 2]
         }
       }
     }
