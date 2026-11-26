@@ -13,6 +13,8 @@ kotlin {
             api(project(":core:block"))
             implementation(project(":core:engine"))
             implementation(project(":ui:block"))
+            implementation(project(":lang:json"))
+            implementation(rootLibs.jetbrains.compose.ui.tooling.preview)
         }
     }
 }
