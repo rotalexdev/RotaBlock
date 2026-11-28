@@ -115,10 +115,24 @@ class JsonBlockMapping : BlockMapping {
     }
 
     private fun literal(node: DomNode, context: ProjectionContext): BlockNode {
-        val parts = listOf(
-            BlockPart.Field(context.field("literal", context.textOf(node), editable = true, range = node.range)),
-        )
+        val parts = if (node.kind == JsonKinds.STRING && node.range.length >= 2) {
+            quoted(node, context)
+        } else {
+            listOf(BlockPart.Field(context.field("literal", context.textOf(node), editable = true, range = node.range)))
+        }
         return context.block(node.kind, node.range, parts, anchor = node, valueKind = valueKindOf(node.kind))
+    }
+
+    private fun quoted(node: DomNode, context: ProjectionContext): List<BlockPart> {
+        val start = node.range.start
+        val end = node.range.end
+        return listOf(
+            BlockPart.Field(context.field("openQuote", "\"", editable = false, range = TextRange(start, start + 1))),
+            BlockPart.Field(
+                context.field("value", slice(context, start + 1, end - 1), editable = true, range = TextRange(start + 1, end - 1)),
+            ),
+            BlockPart.Field(context.field("closeQuote", "\"", editable = false, range = TextRange(end - 1, end))),
+        )
     }
 
     private fun slice(context: ProjectionContext, start: Int, end: Int): String =

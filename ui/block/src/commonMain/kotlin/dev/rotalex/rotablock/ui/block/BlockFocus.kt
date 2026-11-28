@@ -165,3 +165,24 @@ private fun ancestorOf(id: BlockId, tree: BlockTree): BlockId? {
         tree.block(BlockId(path))?.let { block -> return block.id }
     }
 }
+
+/**
+ * The token [focus] names, or `null` when no bar paints it.
+ *
+ * The token is searched for in every bar, not only in the bar of the block that owns the field, because
+ * hoisting and inlining paint a borrowed field on the bar of the block that borrows it.
+ */
+internal fun focusedToken(layout: BlockLayout, focus: BlockFocus.Field): PlacedToken? {
+    fun search(block: PlacedBlock): PlacedToken? {
+        val owned = block.tokens.firstOrNull { it.names(focus) } ?: block.closingTokens.firstOrNull { it.names(focus) }
+        if (owned != null) return owned
+        block.children.forEach { child -> search(child)?.let { return it } }
+        return null
+    }
+    layout.blocks.forEach { block -> search(block)?.let { return it } }
+    return null
+}
+
+/** Whether this token paints [focus]. */
+internal fun PlacedToken.names(focus: BlockFocus.Field): Boolean =
+    blockId == focus.id && fieldIndex == focus.index

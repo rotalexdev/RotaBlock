@@ -2,17 +2,26 @@ package dev.rotalex.rotablock.ui.block
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -23,6 +32,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -38,8 +48,13 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.rotalex.rotablock.core.block.BlockEdit
+import dev.rotalex.rotablock.core.block.BlockRef
 import dev.rotalex.rotablock.core.block.BlockTree
+import kotlin.math.roundToInt
 
 /**
  * The projected document painted as a stack of blocks.
@@ -49,16 +64,23 @@ import dev.rotalex.rotablock.core.block.BlockTree
  * connected shape a reader follows instead of a list of cards.
  *
  * Everything is painted on one [Canvas] from a [BlockLayout], so the shapes are paths rather than a tree of
- * layout boxes, and one document costs one draw pass. The surface is a pure function of [tree] and [focus]:
- * it writes nothing and emits nothing. A click reports the focus it resolved through [onFocus], and the keys
- * that need no text input walk it: `Tab` and `Shift+Tab` through the holes, the arrows through the blocks,
- * `Escape` out of both.
+ * layout boxes, and one document costs one draw pass. The surface never writes a document: it reports the
+ * focus it resolved through [onFocus] and every edit the user asked for through [onEdit], and the host
+ * decides what that means.
+ *
+ * A focused field opens a text input exactly over the chip it occupies, so typing, the caret, the platform's
+ * selection and an IME composition all behave as they do anywhere else. The bar paints no text under that
+ * input, because the input is now the only thing showing the value; the projection itself is held still by
+ * the host until the field closes, which is what keeps a half-typed value from moving the block it belongs
+ * to.
  *
  * @property tree the projection to paint.
  * @property modifier the layout modifier of the scrolling surface.
  * @property palette the three tones and the focus colours.
  * @property focus where the user is, or `null` when nothing is focused.
  * @property onFocus receives every focus the surface resolves, including `null` when it is cleared.
+ * @property onEdit receives the intent a typed field asks for.
+ * @property onCommit asks the host to fold the open field into the document and keep it open.
  */
 @Composable
 fun BlockCanvas(
@@ -67,6 +89,8 @@ fun BlockCanvas(
     palette: BlockPalette = BlockPalette(),
     focus: BlockFocus? = null,
     onFocus: (BlockFocus?) -> Unit = {},
+    onEdit: (BlockEdit) -> Unit = {},
+    onCommit: () -> Unit = {},
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -84,6 +108,28 @@ fun BlockCanvas(
     }
     val layout = remember(tree, sizer, metrics) { layoutBlocks(tree, sizer, metrics) }
     val focusRequester = remember { FocusRequester() }
+    val textHeight = remember(measurer, textStyle) { measurer.measure("X", textStyle).size.height }
+    val fieldFocus = focus as? BlockFocus.Field
+    val fieldToken = fieldFocus?.let { focusedToken(layout, it) }
+    var value by remember(fieldFocus) { mutableStateOf(TextFieldValue(fieldToken?.text.orEmpty())) }
+    val original = remember(fieldFocus) { fieldToken?.text.orEmpty() }
+    var fieldWasOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(fieldFocus) {
+        if (fieldFocus != null) {
+            fieldWasOpen = true
+        } else if (fieldWasOpen) {
+            fieldWasOpen = false
+            focusRequester.requestFocus()
+        }
+    }
+    fun emit(text: String) {
+        val target = fieldFocus ?: return
+        onEdit(BlockEdit.SetField(BlockRef(target.id), target.index, text))
+    }
+    fun commit() {
+        emit(value.text)
+        onCommit()
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -93,18 +139,39 @@ fun BlockCanvas(
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
                     Key.Tab -> {
+                        if (fieldFocus != null) commit()
                         onFocus(nextHole(layout, focus, forward = !event.isShiftPressed))
                         true
                     }
+                    Key.Enter -> {
+                        if (fieldFocus == null) {
+                            false
+                        } else {
+                            commit()
+                            true
+                        }
+                    }
                     Key.DirectionDown -> {
-                        onFocus(nextBlock(layout, focus))
-                        true
+                        if (fieldFocus != null) {
+                            false
+                        } else {
+                            onFocus(nextBlock(layout, focus))
+                            true
+                        }
                     }
                     Key.DirectionUp -> {
-                        onFocus(nextBlock(layout, focus, forward = false))
-                        true
+                        if (fieldFocus != null) {
+                            false
+                        } else {
+                            onFocus(nextBlock(layout, focus, forward = false))
+                            true
+                        }
                     }
                     Key.Escape -> {
+                        if (fieldFocus != null) {
+                            emit(original)
+                            onCommit()
+                        }
                         onFocus(null)
                         true
                     }
@@ -117,19 +184,39 @@ fun BlockCanvas(
     ) {
         val width = with(density) { layout.width.toDp().coerceAtLeast(1.dp) }
         val height = with(density) { layout.height.toDp().coerceAtLeast(1.dp) }
-        Canvas(
-            modifier = Modifier
-                .size(width = width, height = height)
-                .pointerInput(layout) {
-                    detectTapGestures { point ->
-                        focusRequester.requestFocus()
-                        onFocus(focusAt(layout, point))
-                    }
-                },
-        ) {
-            layout.blocks.forEach { block -> paintBlock(block, focus, palette, measurer, textStyle, metrics) }
-            layout.ghost?.let { ghost ->
-                paintGhost(ghost, focus?.let { it == BlockFocus.Slot(ghost.blockId, ghost.slotIndex) } == true, palette, measurer, textStyle, metrics)
+        Box {
+            Canvas(
+                modifier = Modifier
+                    .size(width = width, height = height)
+                    .pointerInput(layout) {
+                        detectTapGestures { point ->
+                            focusRequester.requestFocus()
+                            onFocus(focusAt(layout, point))
+                        }
+                    },
+            ) {
+                val editing = fieldFocus
+                layout.blocks.forEach { block ->
+                    paintBlock(block, focus, editing, palette, measurer, textStyle, metrics)
+                }
+                layout.ghost?.let { ghost ->
+                    paintGhost(ghost, focus?.let { it == BlockFocus.Slot(ghost.blockId, ghost.slotIndex) } == true, palette, measurer, textStyle, metrics)
+                }
+            }
+            if (fieldFocus != null && fieldToken != null) {
+                FieldInput(
+                    target = fieldFocus,
+                    token = fieldToken,
+                    value = value,
+                    textHeight = textHeight,
+                    onValueChange = { next ->
+                        value = next
+                        if (next.composition == null) emit(next.text)
+                    },
+                    palette = palette,
+                    metrics = metrics,
+                    textStyle = textStyle,
+                )
             }
         }
     }
@@ -138,6 +225,7 @@ fun BlockCanvas(
 private fun DrawScope.paintBlock(
     block: PlacedBlock,
     focus: BlockFocus?,
+    editing: BlockFocus.Field?,
     palette: BlockPalette,
     measurer: TextMeasurer,
     textStyle: TextStyle,
@@ -151,15 +239,17 @@ private fun DrawScope.paintBlock(
     drawPath(silhouette, fill)
     drawPath(silhouette, palette.stroke(fill), style = Stroke(width = metrics.grid / 4f))
     val pointedChip = !block.boolean
-    block.tokens.forEach { token -> paintToken(token, focusedField(focus, token), fill, pointedChip, palette, measurer, textStyle, metrics) }
+    block.tokens.forEach { token ->
+        paintToken(token, focusedField(focus, token), editing?.let { token.names(it) } == true, fill, pointedChip, palette, measurer, textStyle, metrics)
+    }
     block.closingTokens.forEach { token ->
-        paintToken(token, focusedField(focus, token), fill, pointedChip, palette, measurer, textStyle, metrics)
+        paintToken(token, focusedField(focus, token), editing?.let { token.names(it) } == true, fill, pointedChip, palette, measurer, textStyle, metrics)
     }
     block.ghost?.let { ghost ->
         val focused = focus == BlockFocus.Slot(ghost.blockId, ghost.slotIndex)
         paintGhost(ghost, focused, palette, measurer, textStyle, metrics)
     }
-    block.children.forEach { child -> paintBlock(child, focus, palette, measurer, textStyle, metrics) }
+    block.children.forEach { child -> paintBlock(child, focus, editing, palette, measurer, textStyle, metrics) }
 }
 
 private fun focusedField(focus: BlockFocus?, token: PlacedToken): Boolean =
@@ -227,6 +317,7 @@ private fun Offset.stepTowards(target: Offset, distance: Float): Offset {
 private fun DrawScope.paintToken(
     token: PlacedToken,
     focused: Boolean,
+    edited: Boolean,
     fill: Color,
     pointedChip: Boolean,
     palette: BlockPalette,
@@ -242,6 +333,7 @@ private fun DrawScope.paintToken(
             drawRoundRect(palette.chip(fill), topLeft = token.rect.topLeft, size = token.rect.size, cornerRadius = radius)
         }
     }
+    if (edited) return
     if (focused) {
         drawRoundRect(
             color = palette.focusRing,
@@ -303,4 +395,36 @@ private fun DrawScope.paintGhost(
             y = ghost.rect.top + (ghost.rect.height - text.size.height) / 2f,
         ),
     )
+}
+
+@Composable
+private fun FieldInput(
+    target: BlockFocus.Field,
+    token: PlacedToken,
+    value: TextFieldValue,
+    textHeight: Int,
+    onValueChange: (TextFieldValue) -> Unit,
+    palette: BlockPalette,
+    metrics: BlockMetrics,
+    textStyle: TextStyle,
+) {
+    val density = LocalDensity.current
+    val requester = remember { FocusRequester() }
+    val inset = if (token.chip) metrics.chipPaddingX + token.lead else 0f
+    val left = token.rect.left + inset
+    val top = token.rect.top + (token.rect.height - textHeight) / 2f
+    val width = (token.rect.width - inset * 2f).coerceAtLeast(metrics.minWidth)
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        textStyle = textStyle.copy(color = palette.onBlock),
+        cursorBrush = SolidColor(palette.focusRing),
+        modifier = Modifier
+            .offset { IntOffset(left.roundToInt(), top.roundToInt()) }
+            .width(with(density) { width.toDp() })
+            .height(with(density) { textHeight.toDp() })
+            .focusRequester(requester),
+    )
+    LaunchedEffect(target) { requester.requestFocus() }
 }
