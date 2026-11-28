@@ -10,16 +10,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.rotalex.rotablock.ui.block.BlockCanvas
 import dev.rotalex.rotablock.ui.block.BlockFocus
-import dev.rotalex.rotablock.ui.block.reanchor
 import dev.rotalex.rotablock.ui.block.BlockOutline
 import dev.rotalex.rotablock.ui.block.outlineRows
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,16 +35,9 @@ fun RotaBlockApp() {
 
 @Composable
 private fun RotaBlockWorkspace(document: String) {
-    var text by remember { mutableStateOf(document) }
-    var draft by remember { mutableStateOf<String?>(null) }
-    val tree = remember(text) { JsonWorkspace.project(text) }
+    val store = remember(document) { EditorStore(document) }
+    val tree = store.snapshot.tree
     val rows = remember(tree) { outlineRows(tree.root) }
-    var focus by remember { mutableStateOf<BlockFocus?>(null) }
-    val anchored = focus?.let { current -> reanchor(current, tree) }
-    fun commitDraft() {
-        draft?.let { pending -> text = pending }
-        draft = null
-    }
     Row(modifier = Modifier.fillMaxSize()) {
         Surface(
             color = OUTLINE_BACKGROUND,
@@ -67,13 +56,10 @@ private fun RotaBlockWorkspace(document: String) {
         )
         BlockCanvas(
             tree = tree,
-            focus = anchored,
-            onFocus = { next ->
-                if (anchored is BlockFocus.Field && next !is BlockFocus.Field) commitDraft()
-                focus = next
-            },
-            onEdit = { edit -> draft = JsonWorkspace.apply(edit, tree, text) },
-            onCommit = { commitDraft() },
+            focus = store.focus,
+            onFocus = { next -> store.focusOn(next) },
+            onEdit = { edit -> store.edit(edit) },
+            onCommit = { store.commit() },
             modifier = Modifier.fillMaxHeight().weight(0.55f),
         )
     }
