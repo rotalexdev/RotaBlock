@@ -7,6 +7,7 @@ import dev.rotalex.rotablock.core.block.SlotCategory
 import dev.rotalex.rotablock.core.block.ValueKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class BlockFocusTest {
@@ -196,5 +197,34 @@ class BlockFocusTest {
             BlockFocus.Field(BlockId("value"), 0),
             focusAt(layout, booleanToken.rect.center),
         )
+    }
+
+    @Test
+    fun aFocusedFieldResolvesToTheTokenItIsPaintedIn() {
+        val value = leaf("greeting", id = "value")
+        val pair = withParts(
+            id = "pair",
+            category = SlotCategory.DECLARATION,
+            parts = listOf(
+                BlockPart.Field(field("path")),
+                BlockPart.Field(field(":", editable = false)),
+                BlockPart.Slot(slotOf(SlotCategory.EXPRESSION, listOf(value), ValueKind.STRING)),
+            ),
+        )
+
+        val layout = layoutOf(listOf(pair))
+
+        val token = assertNotNull(focusedToken(layout, BlockFocus.Field(BlockId("value"), 0)))
+        assertEquals("greeting", token.text)
+        assertEquals(BlockId("value"), token.blockId)
+        assertEquals(BlockId("pair"), layout.blocks.single().block.id)
+    }
+
+    @Test
+    fun aFieldNoBarPaintsResolvesToNothing() {
+        val layout = layoutOf(listOf(statement))
+
+        assertNull(focusedToken(layout, BlockFocus.Field(BlockId("child"), 3)))
+        assertNull(focusedToken(layout, BlockFocus.Field(BlockId("absent"), 0)))
     }
 }

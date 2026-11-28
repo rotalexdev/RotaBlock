@@ -16,5 +16,8 @@ kotlin {
             implementation(project(":lang:json"))
             implementation(rootLibs.jetbrains.compose.ui.tooling.preview)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }

@@ -39,10 +39,16 @@ fun RotaBlockApp() {
 
 @Composable
 private fun RotaBlockWorkspace(document: String) {
-    val tree = remember(document) { JsonWorkspace.project(document) }
+    var text by remember { mutableStateOf(document) }
+    var draft by remember { mutableStateOf<String?>(null) }
+    val tree = remember(text) { JsonWorkspace.project(text) }
     val rows = remember(tree) { outlineRows(tree.root) }
     var focus by remember { mutableStateOf<BlockFocus?>(null) }
     val anchored = focus?.let { current -> reanchor(current, tree) }
+    fun commitDraft() {
+        draft?.let { pending -> text = pending }
+        draft = null
+    }
     Row(modifier = Modifier.fillMaxSize()) {
         Surface(
             color = OUTLINE_BACKGROUND,
@@ -62,7 +68,12 @@ private fun RotaBlockWorkspace(document: String) {
         BlockCanvas(
             tree = tree,
             focus = anchored,
-            onFocus = { next -> focus = next },
+            onFocus = { next ->
+                if (anchored is BlockFocus.Field && next !is BlockFocus.Field) commitDraft()
+                focus = next
+            },
+            onEdit = { edit -> draft = JsonWorkspace.apply(edit, tree, text) },
+            onCommit = { commitDraft() },
             modifier = Modifier.fillMaxHeight().weight(0.55f),
         )
     }
