@@ -457,7 +457,7 @@ Two corrections to the first version of this plan, both forced by making `I-9` e
 `SlotCategory` answers "may this go here?" — structural grammar. `ValueKind` answers "what shape is
 this?" — rendering affordance. They stay orthogonal and are never merged (§4.1).
 
-**`BlockSlot` gains `templates`** (`D-29`). §9.4 requires `Enter` to insert a child, and `InsertTemplate`
+**`BlockSlot` gains `templates`** (`D-29`). §9.4 requires `Key.Enter` to insert a child, and `InsertTemplate`
 takes a `BlockTemplate`: without the slot saying which templates it offers, the surface would have to
 know the language to invent one. A slot that offers none is one where nothing may be inserted.
 
