@@ -52,6 +52,35 @@ fun focusAt(layout: BlockLayout, point: Offset): BlockFocus? {
     }
 }
 
+/**
+ * What `Enter` asks for at a focus, as the interaction model defines it for every language.
+ *
+ * A field commits and stays open, a block asks for a sibling after it, and an empty slot asks for a child.
+ * A host turns each intent into the edit its language can express, so the key means the same thing
+ * everywhere and a language cannot override it.
+ */
+sealed interface EnterIntent {
+    /** Fold the open field into the document and keep it open. */
+    data object Commit : EnterIntent
+
+    /** Insert a sibling after the block named by [block]. */
+    data class InsertAfter(val block: BlockId) : EnterIntent
+
+    /** Insert a child into the empty slot at [slot] of [owner]. */
+    data class InsertInto(val owner: BlockId, val slot: Int) : EnterIntent
+
+    /** Nothing is focused, so the key belongs to whatever holds the surface. */
+    data object None : EnterIntent
+}
+
+/** The intent `Enter` carries at [focus]. */
+fun enterIntent(focus: BlockFocus?): EnterIntent = when (focus) {
+    null -> EnterIntent.None
+    is BlockFocus.Field -> EnterIntent.Commit
+    is BlockFocus.Block -> EnterIntent.InsertAfter(focus.id)
+    is BlockFocus.Slot -> EnterIntent.InsertInto(focus.id, focus.index)
+}
+
 /** The empty slots of the surface, in the order a reader walks them. */
 fun holesOf(layout: BlockLayout): List<BlockFocus.Slot> {
     val holes = mutableListOf<BlockFocus.Slot>()

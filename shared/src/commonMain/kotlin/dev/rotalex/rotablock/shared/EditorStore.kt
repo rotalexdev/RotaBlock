@@ -4,7 +4,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.rotalex.rotablock.core.block.BlockEdit
+import dev.rotalex.rotablock.core.block.BlockId
+import dev.rotalex.rotablock.core.block.BlockNode
+import dev.rotalex.rotablock.core.block.BlockRef
+import dev.rotalex.rotablock.core.block.BlockSlot
+import dev.rotalex.rotablock.core.block.BlockTemplate
 import dev.rotalex.rotablock.core.block.BlockTree
+import dev.rotalex.rotablock.core.block.SlotRef
 import dev.rotalex.rotablock.ui.block.BlockFocus
 import dev.rotalex.rotablock.ui.block.reanchor
 
@@ -29,6 +35,9 @@ data class Snapshot(
 /**
  * The editing state of one document: its committed [snapshot], the draft an open field is typing, and where
  * the user is.
+ *
+ * An insert advances the snapshot on its own: unlike a keystroke it is not a change to a field that is
+ * already there, so there is no draft to fold it into.
  *
  * A field that is being typed into does not advance the snapshot. Every keystroke is compiled against the
  * snapshot the field was opened on and replaces the field's whole text in a draft, so a value that is
@@ -98,6 +107,66 @@ class EditorStore(
         if (next != focus) commit()
         focus = next
     }
+
+    /**
+     * Inserts the next sibling of [block] and focuses what it created, as `Enter` on a block does.
+     *
+     * Nothing happens when the block has no position in the tree, when its slot holds a single child, or
+     * when that slot offers no template: a position that cannot take another child has nothing to insert.
+     */
+    fun insertAfter(block: BlockId) {
+        commit()
+        val position = positionOf(block) ?: return
+        if (!position.slot.multiple) return
+        val template = position.slot.templates.firstOrNull() ?: return
+        insert(SlotRef(BlockRef(position.owner), position.slotIndex, position.index + 1), template)
+    }
+
+    /**
+     * Appends the template of the slot at [slotIndex] of [owner] and focuses what it created, as `Enter` on
+     * an empty slot does.
+     *
+     * Nothing happens when the slot does not exist or offers no template.
+     */
+    fun insertInto(owner: BlockId, slotIndex: Int) {
+        commit()
+        val slot = snapshot.tree.block(owner)?.slots?.getOrNull(slotIndex) ?: return
+        val template = slot.templates.firstOrNull() ?: return
+        insert(SlotRef(BlockRef(owner), slotIndex, slot.children.size), template)
+    }
+
+    private fun insert(reference: SlotRef, template: BlockTemplate) {
+        val next = apply(BlockEdit.InsertTemplate(reference, template), snapshot.tree, snapshot.text)
+        if (next == snapshot.text) return
+        val version = snapshot.version + 1
+        val tree = project(next, version)
+        snapshot = Snapshot(next, version, tree)
+        val created = tree.block(reference.owner.id)?.slots?.getOrNull(reference.slotIndex)
+            ?.children?.getOrNull(reference.index)
+        focusOn(created?.let(::focusInside))
+    }
+
+    private fun focusInside(block: BlockNode): BlockFocus =
+        block.fields.indexOfFirst { field -> field.editable }
+            .takeIf { index -> index >= 0 }
+            ?.let { index -> BlockFocus.Field(block.id, index) }
+            ?: BlockFocus.Block(block.id)
+
+    private fun positionOf(block: BlockId): Position? {
+        var found: Position? = null
+        fun visit(node: BlockNode) {
+            node.slots.forEachIndexed { slotIndex, slot ->
+                slot.children.forEachIndexed { index, child ->
+                    if (child.id == block) found = Position(node.id, slotIndex, index, slot)
+                    visit(child)
+                }
+            }
+        }
+        visit(snapshot.tree.root)
+        return found
+    }
+
+    private class Position(val owner: BlockId, val slotIndex: Int, val index: Int, val slot: BlockSlot)
 
     private companion object {
         const val INITIAL_VERSION = 1L

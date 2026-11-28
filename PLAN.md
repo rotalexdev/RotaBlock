@@ -441,7 +441,7 @@ Constraints that the DOM must keep, because §7 depends on them:
 | `BlockNode` | `id`, `kind`, `category`, `anchor`, `range`, `parts`, `label`, `valueKind`. `fields` and `slots` are computed views over `parts`. |
 | `BlockPart` | Sealed: `Field(BlockField)` or `Slot(BlockSlot)`; order is render and serialize order. |
 | `BlockField` | `role`, `text`, `editable`, `range`. An editable field always carries a range (`I-6`); chrome may carry none. |
-| `BlockSlot` | `category`, `children`, `multiple`, `range`, `valueKind`. |
+| `BlockSlot` | `category`, `children`, `multiple`, `range`, `valueKind`, `templates`. |
 | `SlotCategory` | Closed set: `STATEMENT`, `EXPRESSION`, `TYPE`, `DECLARATION`, `NAME`, `MODIFIER`, `PARAMETER`, `ARGUMENT`, `OPAQUE`. `OPAQUE` accepts anything. |
 | `ValueKind` | Closed set: `BOOLEAN`, `NUMBER`, `STRING`, `OBJECT`, `ARRAY`, `TYPE`, `NULL`, `UNKNOWN`. |
 | `BlockTree` | `root`, `version`, `language`, `block(id)`, `blockAt(offset)`, `enclosing(range)`. The language travels with the tree because compilation asks that language's layout rules, and a tree is what an intent is compiled against. |
@@ -456,6 +456,10 @@ Two corrections to the first version of this plan, both forced by making `I-9` e
 
 `SlotCategory` answers "may this go here?" — structural grammar. `ValueKind` answers "what shape is
 this?" — rendering affordance. They stay orthogonal and are never merged (§4.1).
+
+**`BlockSlot` gains `templates`** (`D-29`). §9.4 requires `Key.Enter` to insert a child, and `InsertTemplate`
+takes a `BlockTemplate`: without the slot saying which templates it offers, the surface would have to
+know the language to invent one. A slot that offers none is one where nothing may be inserted.
 
 ### 6.4 Identity and references
 
@@ -818,7 +822,7 @@ The checklist a contributor follows, in order. If any step requires touching `:c
 design change instead (`§8.3`):
 
 1. Add the grammar binding to a new `:lang:<name>` module (`DEP-4`).
-2. Declare `languages`, `handles`, `categories`, `layout` and `notation`.
+2. Declare `languages`, `handles`, `categories`, `layout`, `notation` and the templates each slot offers.
 3. Decide the block decomposition for each handled kind and write it down as a table, as in §8.4.
 4. Write the layout policy: separators, trailing separator, indentation, deletion and insertion rules.
 5. Add conformance tests from `:core:testkit` (`§8.6`) and golden tests for every intent the language
@@ -1254,6 +1258,7 @@ text behaviour is unverified.
 | `D-26` | Collaboration is out of the core; `Document` is the seam | Synchronization must not shape core contracts (§2.3, §7.5) | A CRDT in the core, as some editors do (§4.4) |
 | `D-27` | Modules regroup under `:core`, `:parser`, `:lang`, `:ui`; applications stay top level | The prefix is a checkable statement about the boundary (§5.4) | Flat module list with responsibility encoded in suffixes |
 | `D-28` | Pull request bodies stay empty; reasoning lives in this document | Keeps the argument in the artifact that outlives the pull request (§13.3) | Descriptive bodies, which disappear with the review |
+| `D-29` | A slot declares the templates that may be created in it | `Enter` must insert a child, and a host that invented the text would encode the language (§9.4, §8.5) | The host holding per-language templates |
 
 ---
 

@@ -52,8 +52,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.rotalex.rotablock.core.block.BlockEdit
+import dev.rotalex.rotablock.core.block.BlockId
 import dev.rotalex.rotablock.core.block.BlockRef
 import dev.rotalex.rotablock.core.block.BlockTree
+import dev.rotalex.rotablock.ui.block.EnterIntent
 import kotlin.math.roundToInt
 
 /**
@@ -81,6 +83,8 @@ import kotlin.math.roundToInt
  * @property onFocus receives every focus the surface resolves, including `null` when it is cleared.
  * @property onEdit receives the intent a typed field asks for.
  * @property onCommit asks the host to fold the open field into the document and keep it open.
+ * @property onInsertAfter receives the block `Enter` asks a sibling after.
+ * @property onInsertInto receives the block and slot `Enter` asks a child in.
  */
 @Composable
 fun BlockCanvas(
@@ -91,6 +95,8 @@ fun BlockCanvas(
     onFocus: (BlockFocus?) -> Unit = {},
     onEdit: (BlockEdit) -> Unit = {},
     onCommit: () -> Unit = {},
+    onInsertAfter: (BlockId) -> Unit = {},
+    onInsertInto: (BlockId, Int) -> Unit = { _, _ -> },
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -143,11 +149,18 @@ fun BlockCanvas(
                         onFocus(nextHole(layout, focus, forward = !event.isShiftPressed))
                         true
                     }
-                    Key.Enter -> {
-                        if (fieldFocus == null) {
-                            false
-                        } else {
+                    Key.Enter -> when (val intent = enterIntent(focus)) {
+                        EnterIntent.None -> false
+                        EnterIntent.Commit -> {
                             commit()
+                            true
+                        }
+                        is EnterIntent.InsertAfter -> {
+                            onInsertAfter(intent.block)
+                            true
+                        }
+                        is EnterIntent.InsertInto -> {
+                            onInsertInto(intent.owner, intent.slot)
                             true
                         }
                     }

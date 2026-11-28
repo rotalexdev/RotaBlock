@@ -45,13 +45,14 @@ interface ProjectionContext {
         valueKind: ValueKind = ValueKind.UNKNOWN,
     ): BlockNode
 
-    /** Builds a slot. */
+    /** Builds a slot that offers [templates] to a host that wants to create a child in it. */
     fun slot(
         category: SlotCategory,
         children: List<BlockNode>,
         multiple: Boolean,
         range: TextRange? = null,
         valueKind: ValueKind = ValueKind.UNKNOWN,
+        templates: List<BlockTemplate> = emptyList(),
     ): BlockSlot
 
     /** Builds a field. */

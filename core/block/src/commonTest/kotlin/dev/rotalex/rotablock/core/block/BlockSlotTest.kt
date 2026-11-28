@@ -35,6 +35,26 @@ class BlockSlotTest {
     }
 
     @Test
+    fun offersNoTemplateByDefault() {
+        val slot = BlockSlot(SlotCategory.STATEMENT, emptyList(), multiple = true, range = null, valueKind = ValueKind.UNKNOWN)
+        assertTrue(slot.templates.isEmpty())
+    }
+
+    @Test
+    fun keepsTheTemplatesItOffers() {
+        val template = BlockTemplate("statement", NodeKind.ROOT, "", "")
+        val slot = BlockSlot(
+            category = SlotCategory.STATEMENT,
+            children = emptyList(),
+            multiple = true,
+            range = null,
+            valueKind = ValueKind.UNKNOWN,
+            templates = listOf(template),
+        )
+        assertEquals(listOf(template), slot.templates)
+    }
+
+    @Test
     fun keepsItsChildrenInOrder() {
         val first = syntheticBlock("first")
         val second = syntheticBlock("second")
