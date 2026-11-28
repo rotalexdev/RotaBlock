@@ -87,11 +87,20 @@ class JsonGoldenTest {
     }
 
     @Test
+    fun aStringLiteralCutsItsQuotesIntoChrome() {
+        val fixture = JsonFixture("{\"a\": \"x\"}")
+        val literal = fixture.elements(fixture.elements(fixture.topLevel.single()).single()).single()
+
+        assertEquals(listOf("\"", "x", "\""), literal.fields.map { it.text })
+        assertEquals(listOf(false, true, false), literal.fields.map { it.editable })
+    }
+
+    @Test
     fun editingAStringLiteralKeepsItQuoted() {
         val fixture = JsonFixture("{\"a\": \"x\"}")
         val literal = fixture.elements(fixture.elements(fixture.topLevel.single()).single()).single()
 
-        val result = fixture.apply(BlockEdit.SetField(BlockRef(literal.id), 0, "\"a b\""))
+        val result = fixture.apply(BlockEdit.SetField(BlockRef(literal.id), 1, "a b"))
 
         assertEquals("{\"a\": \"a b\"}", result)
         assertParsesClean(result)
