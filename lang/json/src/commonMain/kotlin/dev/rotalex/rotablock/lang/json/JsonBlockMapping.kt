@@ -3,6 +3,7 @@ package dev.rotalex.rotablock.lang.json
 import dev.rotalex.rotablock.core.block.BlockMapping
 import dev.rotalex.rotablock.core.block.BlockNode
 import dev.rotalex.rotablock.core.block.BlockPart
+import dev.rotalex.rotablock.core.block.BlockTemplate
 import dev.rotalex.rotablock.core.block.LayoutPolicy
 import dev.rotalex.rotablock.core.block.ProjectionContext
 import dev.rotalex.rotablock.core.block.SlotCategory
@@ -35,9 +36,9 @@ class JsonBlockMapping : BlockMapping {
     override val layout: LayoutPolicy = JsonLayoutPolicy
 
     override fun project(node: DomNode, context: ProjectionContext): BlockNode = when (node.kind) {
-        NodeKind.ROOT -> container(node, context, SlotCategory.OPAQUE, ValueKind.UNKNOWN)
-        JsonKinds.OBJECT -> container(node, context, SlotCategory.DECLARATION, ValueKind.OBJECT)
-        JsonKinds.ARRAY -> container(node, context, SlotCategory.EXPRESSION, ValueKind.ARRAY)
+        NodeKind.ROOT -> container(node, context, SlotCategory.OPAQUE, ValueKind.UNKNOWN, listOf(VALUE_TEMPLATE))
+        JsonKinds.OBJECT -> container(node, context, SlotCategory.DECLARATION, ValueKind.OBJECT, listOf(MEMBER_TEMPLATE))
+        JsonKinds.ARRAY -> container(node, context, SlotCategory.EXPRESSION, ValueKind.ARRAY, listOf(ELEMENT_TEMPLATE))
         JsonKinds.PAIR -> member(node, context)
         else -> literal(node, context)
     }
@@ -47,6 +48,7 @@ class JsonBlockMapping : BlockMapping {
         context: ProjectionContext,
         category: SlotCategory,
         valueKind: ValueKind,
+        templates: List<BlockTemplate>,
     ): BlockNode {
         val children = node.children
         val start = node.range.start
@@ -60,6 +62,7 @@ class JsonBlockMapping : BlockMapping {
                         children = emptyList(),
                         multiple = true,
                         range = if (end - start >= 2) TextRange(start + 1, end - 1) else TextRange(start, start),
+                        templates = templates,
                     ),
                 ),
             )
@@ -75,6 +78,7 @@ class JsonBlockMapping : BlockMapping {
                     children = children.map(context::child),
                     multiple = true,
                     range = TextRange(first.range.start, last.range.end),
+                    templates = templates,
                 ),
             ),
             BlockPart.Field(context.field("close", slice(context, last.range.end, end), editable = false)),
@@ -152,3 +156,9 @@ class JsonBlockMapping : BlockMapping {
         else -> ValueKind.UNKNOWN
     }
 }
+
+private val MEMBER_TEMPLATE = BlockTemplate("member", JsonKinds.PAIR, "\"key\": null", "")
+
+private val ELEMENT_TEMPLATE = BlockTemplate("element", JsonKinds.NULL, "null", "")
+
+private val VALUE_TEMPLATE = BlockTemplate("value", JsonKinds.NULL, "null", "")

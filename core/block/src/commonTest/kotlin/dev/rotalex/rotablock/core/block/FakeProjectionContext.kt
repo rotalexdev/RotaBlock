@@ -44,7 +44,8 @@ class FakeProjectionContext(override val source: CharSequence) : ProjectionConte
         multiple: Boolean,
         range: TextRange?,
         valueKind: ValueKind,
-    ): BlockSlot = BlockSlot(category, children, multiple, range, valueKind)
+        templates: List<BlockTemplate>,
+    ): BlockSlot = BlockSlot(category, children, multiple, range, valueKind, templates)
 
     override fun field(role: String, text: String, editable: Boolean, range: TextRange?): BlockField =
         BlockField(role, text, editable, range)

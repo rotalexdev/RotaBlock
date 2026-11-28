@@ -6,6 +6,7 @@ import dev.rotalex.rotablock.core.block.BlockMapping
 import dev.rotalex.rotablock.core.block.BlockNode
 import dev.rotalex.rotablock.core.block.BlockPart
 import dev.rotalex.rotablock.core.block.BlockSlot
+import dev.rotalex.rotablock.core.block.BlockTemplate
 import dev.rotalex.rotablock.core.block.ProjectionContext
 import dev.rotalex.rotablock.core.block.SlotCategory
 import dev.rotalex.rotablock.core.block.ValueKind
@@ -95,7 +96,8 @@ class EngineProjectionContext(
         multiple: Boolean,
         range: TextRange?,
         valueKind: ValueKind,
-    ): BlockSlot = BlockSlot(category, children, multiple, range, valueKind)
+        templates: List<BlockTemplate>,
+    ): BlockSlot = BlockSlot(category, children, multiple, range, valueKind, templates)
 
     override fun field(role: String, text: String, editable: Boolean, range: TextRange?): BlockField =
         BlockField(role, text, editable, range)
