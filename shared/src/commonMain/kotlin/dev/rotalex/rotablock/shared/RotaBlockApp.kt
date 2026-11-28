@@ -62,6 +62,7 @@ private fun RotaBlockWorkspace(document: String) {
             onCommit = { store.commit() },
             onInsertAfter = { block -> store.insertAfter(block) },
             onInsertInto = { owner, slot -> store.insertInto(owner, slot) },
+            onDelete = { block -> store.delete(block) },
             modifier = Modifier.fillMaxHeight().weight(0.55f),
         )
     }

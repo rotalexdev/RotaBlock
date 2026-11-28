@@ -135,15 +135,52 @@ class EditorStore(
         insert(SlotRef(BlockRef(owner), slotIndex, slot.children.size), template)
     }
 
+    /**
+     * Deletes [block] and the syntax that existed only to hold it, then focuses the nearest survivor.
+     *
+     * A block that is the only content of a slot holding a single child is not deletable on its own, because
+     * removing it would leave behind the syntax that needed it. The delete then applies to the nearest
+     * ancestor whose slot holds several children; the root has no such ancestor and is never deleted.
+     */
+    fun delete(block: BlockId) {
+        commit()
+        val target = deletable(block) ?: return
+        val position = positionOf(target) ?: return
+        val tree = advance(BlockEdit.Delete(BlockRef(target))) ?: return
+        focusOn(survivorOf(tree, position))
+    }
+
+    private fun deletable(block: BlockId): BlockId? {
+        var current = block
+        while (true) {
+            val position = positionOf(current) ?: return null
+            if (position.slot.multiple) return current
+            current = position.owner
+        }
+    }
+
+    private fun survivorOf(tree: BlockTree, position: Position): BlockFocus? {
+        val siblings = tree.block(position.owner)?.slots?.getOrNull(position.slotIndex)?.children
+            ?: return null
+        val neighbour = siblings.getOrNull(position.index - 1) ?: siblings.getOrNull(position.index)
+        if (neighbour != null) return focusInside(neighbour)
+        return tree.block(position.owner)?.let { owner -> BlockFocus.Block(owner.id) }
+    }
+
     private fun insert(reference: SlotRef, template: BlockTemplate) {
-        val next = apply(BlockEdit.InsertTemplate(reference, template), snapshot.tree, snapshot.text)
-        if (next == snapshot.text) return
-        val version = snapshot.version + 1
-        val tree = project(next, version)
-        snapshot = Snapshot(next, version, tree)
+        val tree = advance(BlockEdit.InsertTemplate(reference, template)) ?: return
         val created = tree.block(reference.owner.id)?.slots?.getOrNull(reference.slotIndex)
             ?.children?.getOrNull(reference.index)
         focusOn(created?.let(::focusInside))
+    }
+
+    private fun advance(edit: BlockEdit): BlockTree? {
+        val next = apply(edit, snapshot.tree, snapshot.text)
+        if (next == snapshot.text) return null
+        val version = snapshot.version + 1
+        val tree = project(next, version)
+        snapshot = Snapshot(next, version, tree)
+        return tree
     }
 
     private fun focusInside(block: BlockNode): BlockFocus =

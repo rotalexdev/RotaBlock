@@ -55,6 +55,7 @@ import dev.rotalex.rotablock.core.block.BlockEdit
 import dev.rotalex.rotablock.core.block.BlockId
 import dev.rotalex.rotablock.core.block.BlockRef
 import dev.rotalex.rotablock.core.block.BlockTree
+import dev.rotalex.rotablock.ui.block.DeleteIntent
 import dev.rotalex.rotablock.ui.block.EnterIntent
 import kotlin.math.roundToInt
 
@@ -85,6 +86,7 @@ import kotlin.math.roundToInt
  * @property onCommit asks the host to fold the open field into the document and keep it open.
  * @property onInsertAfter receives the block `Enter` asks a sibling after.
  * @property onInsertInto receives the block and slot `Enter` asks a child in.
+ * @property onDelete receives the block a delete asks the host to remove.
  */
 @Composable
 fun BlockCanvas(
@@ -97,6 +99,7 @@ fun BlockCanvas(
     onCommit: () -> Unit = {},
     onInsertAfter: (BlockId) -> Unit = {},
     onInsertInto: (BlockId, Int) -> Unit = { _, _ -> },
+    onDelete: (BlockId) -> Unit = {},
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -177,6 +180,13 @@ fun BlockCanvas(
                             false
                         } else {
                             onFocus(nextBlock(layout, focus, forward = false))
+                            true
+                        }
+                    }
+                    Key.Backspace -> when (val intent = deleteIntent(focus)) {
+                        DeleteIntent.None -> false
+                        is DeleteIntent.DeleteBlock -> {
+                            onDelete(intent.block)
                             true
                         }
                     }
