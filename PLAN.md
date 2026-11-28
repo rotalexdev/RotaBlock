@@ -899,6 +899,10 @@ empty slot that renders as nothing is indistinguishable from a bug, and it is wh
 The table is normative: the same key has the same meaning in every language, and a language cannot
 override it (that is a variation the plan refuses on purpose, `§4.1`).
 
+A delete never leaves behind the syntax that a removed block needed. A block that is the only content of a
+slot holding one child is deleted together with the nearest ancestor whose slot holds several children, and
+the root is never deleted, so no delete can produce text the grammar cannot parse.
+
 ### 9.5 Input reconciliation
 
 Typing into a field is free text; typing into a hole is structure. The two are reconciled, not

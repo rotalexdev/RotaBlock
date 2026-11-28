@@ -81,6 +81,27 @@ fun enterIntent(focus: BlockFocus?): EnterIntent = when (focus) {
     is BlockFocus.Slot -> EnterIntent.InsertInto(focus.id, focus.index)
 }
 
+/**
+ * What a delete asks for at a focus, as the interaction model defines it for every language.
+ *
+ * A field keeps the key for its own text and an empty slot has nothing to delete, so both ask for nothing
+ * and the key belongs to whatever holds the surface. A block is deleted together with the syntax that
+ * existed only to hold it, which the host resolves against the tree the block came from.
+ */
+sealed interface DeleteIntent {
+    /** The key belongs to the field, to the host, or to nothing. */
+    data object None : DeleteIntent
+
+    /** Delete the block named by [block]. */
+    data class DeleteBlock(val block: BlockId) : DeleteIntent
+}
+
+/** The intent a delete carries at [focus]. */
+fun deleteIntent(focus: BlockFocus?): DeleteIntent = when (focus) {
+    is BlockFocus.Block -> DeleteIntent.DeleteBlock(focus.id)
+    null, is BlockFocus.Field, is BlockFocus.Slot -> DeleteIntent.None
+}
+
 /** The empty slots of the surface, in the order a reader walks them. */
 fun holesOf(layout: BlockLayout): List<BlockFocus.Slot> {
     val holes = mutableListOf<BlockFocus.Slot>()
